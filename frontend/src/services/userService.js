@@ -1,7 +1,9 @@
 import api from './api';
 import { MOCK_MOVIES } from '../data/movies';
+import { MOCK_REVIEWS } from '../data/reviews';
+import { MOCK_MOOD_HISTORY } from '../data/moodHistory';
 
-const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms = 350) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getStored = (key, fallback = []) => {
   try {
@@ -78,38 +80,107 @@ export const userService = {
    * MOCK: replace with real API in integration step -> return (await api.get('/history')).data;
    */
   async getHistory() {
-    await delay(250);
-    return getStored('moodie_history', [
-      {
-        id: 'h1',
-        inputText: 'Feeling worn out and need lighthearted hope',
-        detectedMood: 'Happy',
-        confidence: 0.92,
-        date: new Date(Date.now() - 3600000).toLocaleString(),
-        count: 8
-      },
-      {
-        id: 'h2',
-        inputText: 'Intense galactic thriller and sci-fi rush',
-        detectedMood: 'Excited',
-        confidence: 0.88,
-        date: new Date(Date.now() - 86400000).toLocaleString(),
-        count: 6
-      }
-    ]);
+    await delay(300);
+    return getStored('moodie_history', MOCK_MOOD_HISTORY);
   },
 
+  /**
+   * Add entry to mood history
+   * MOCK: replace with real API in integration step -> return (await api.post('/history', entry)).data;
+   */
   async addHistory(entry) {
     await delay(150);
-    const history = getStored('moodie_history', []);
+    const history = getStored('moodie_history', MOCK_MOOD_HISTORY);
     const newEntry = {
       id: `h_${Date.now()}`,
       ...entry,
-      date: new Date().toLocaleString()
+      createdAt: new Date().toISOString()
     };
     history.unshift(newEntry);
     setStored('moodie_history', history);
     return newEntry;
+  },
+
+  /**
+   * Clear all recommendation history
+   * MOCK: replace with real API in integration step -> return (await api.delete('/history')).data;
+   */
+  async clearHistory() {
+    await delay(300);
+    setStored('moodie_history', []);
+    return { success: true };
+  },
+
+  /**
+   * Update user profile information
+   * MOCK: replace with real API in integration step -> return (await api.put('/user/profile', data)).data;
+   */
+  async updateProfile(data) {
+    await delay(400);
+    const storedUser = getStored('moodie_user', {});
+    const updated = { ...storedUser, ...data };
+    setStored('moodie_user', updated);
+    return updated;
+  },
+
+  /**
+   * Change user account password
+   * MOCK: replace with real API in integration step -> return (await api.put('/user/password', data)).data;
+   */
+  async changePassword({ currentPassword, newPassword }) {
+    await delay(450);
+    if (!currentPassword || !newPassword) {
+      throw new Error('Current and new password are required');
+    }
+    if (newPassword.length < 8) {
+      throw new Error('New password must be at least 8 characters');
+    }
+    return { success: true };
+  },
+
+  /**
+   * Delete user account
+   * MOCK: replace with real API in integration step -> return (await api.delete('/user/account')).data;
+   */
+  async deleteAccount() {
+    await delay(500);
+    localStorage.removeItem('moodie_user');
+    localStorage.removeItem('moodie_token');
+    localStorage.removeItem('moodie_watchlist');
+    localStorage.removeItem('moodie_favorites');
+    localStorage.removeItem('moodie_history');
+    return { success: true };
+  },
+
+  /**
+   * Get reviews created by current user
+   * MOCK: replace with real API in integration step -> return (await api.get('/user/reviews')).data;
+   */
+  async getUserReviews() {
+    await delay(300);
+    return MOCK_REVIEWS.slice(0, 4);
+  },
+
+  /**
+   * Get user preferences (favorite genres, preferred language)
+   * MOCK: replace with real API in integration step -> return (await api.get('/user/preferences')).data;
+   */
+  async getPreferences() {
+    await delay(250);
+    return getStored('moodie_preferences', {
+      favoriteGenres: ['Sci-Fi', 'Comedy', 'Drama'],
+      preferredLanguage: 'English'
+    });
+  },
+
+  /**
+   * Update user preferences
+   * MOCK: replace with real API in integration step -> return (await api.put('/user/preferences', data)).data;
+   */
+  async updatePreferences(data) {
+    await delay(350);
+    setStored('moodie_preferences', data);
+    return data;
   }
 };
 

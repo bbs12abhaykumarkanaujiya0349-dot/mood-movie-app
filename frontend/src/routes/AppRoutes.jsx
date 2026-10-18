@@ -1,6 +1,7 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
+import AdminLayout from '../layouts/AdminLayout';
 import ProtectedRoute from './ProtectedRoute';
 import AdminRoute from './AdminRoute';
 
@@ -33,6 +34,7 @@ import AdminAnalyticsPage from '../pages/admin/AdminAnalyticsPage';
 export default function AppRoutes() {
   return (
     <Routes>
+      {/* Consumer Routes (Header, Main Container, Footer) */}
       <Route element={<MainLayout />}>
         {/* Public Discovery Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -54,17 +56,19 @@ export default function AppRoutes() {
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
 
-        {/* Admin Protected Routes (Require Admin Role) */}
-        <Route element={<AdminRoute />}>
+        {/* Catch-all 404 Route */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+
+      {/* Admin Governance Routes (Protected by AdminRoute and nested in AdminLayout) */}
+      <Route element={<AdminRoute />}>
+        <Route element={<AdminLayout />}>
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/admin/reviews" element={<AdminReviewsPage />} />
           <Route path="/admin/movies" element={<AdminMoviesPage />} />
           <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
         </Route>
-
-        {/* Catch-all 404 Route */}
-        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   );
