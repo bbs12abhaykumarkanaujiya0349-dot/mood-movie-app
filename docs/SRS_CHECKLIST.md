@@ -69,15 +69,15 @@
 
 ## 5. User Interface Requirements (React + Tailwind CSS)
 
-- [ ] **Landing / Home Page**: Hero banner, quick mood selector, trending/featured movies (`PENDING`)
-- [ ] **Authentication Pages**: Clean login and registration forms with validation feedback (`PENDING`)
-- [ ] **Mood Selector Component**: Interactive mood cards with curated icons, colors, and prompt input (`PENDING`)
-- [ ] **Recommendations View**: Cinematic cards showing poster, title, rating, release year, genre tags (`PENDING`)
-- [ ] **Movie Details Page**: High-resolution backdrop/poster, overview, genre badges, runtime, cast, user reviews (`PENDING`)
-- [ ] **Search & Filter Page**: Real-time search by title, filter by genre, year, rating, language (`PENDING`)
-- [ ] **Watchlist Page**: Grid of saved movies with remove action and quick watch links (`PENDING`)
-- [ ] **Profile Page**: User details, recent mood history, favorite genres, written reviews (`PENDING`)
-- [ ] **Admin Dashboard**: Analytics cards, user management table, review moderation tools (`PENDING`)
+- [x] **Landing / Home Page**: Hero banner, quick mood selector, trending/featured movies (`MOCKED` - Step F1)
+- [x] **Authentication Pages**: Clean login and registration placeholders (`MOCKED` - Step F1)
+- [x] **Mood Selector Component**: Interactive mood cards with curated icons, colors, and prompt input (`MOCKED` - Step F1)
+- [x] **Recommendations View**: Cinematic cards showing poster, title, rating, release year, genre tags (`MOCKED` - Step F1)
+- [x] **Movie Details Page**: High-resolution backdrop/poster, overview, genre badges, runtime, cast, user reviews (`MOCKED` - Step F1)
+- [x] **Search & Filter Page**: Real-time search by title, filter by genre, year, rating, language (`MOCKED` - Step F1)
+- [x] **Watchlist Page**: Grid of saved movies with remove action and quick watch links (`MOCKED` - Step F1)
+- [x] **Profile Page**: User details, recent mood history, favorite genres, written reviews (`MOCKED` - Step F1)
+- [x] **Admin Dashboard**: Analytics cards, user management table, review moderation tools (`MOCKED` - Step F1)
 
 ---
 
@@ -89,13 +89,13 @@
 - [ ] Request input validation & sanitization (`express-validator`) on all endpoints (`PENDING`)
 - [ ] Rate limiting (`express-rate-limit`) to prevent brute-force attacks (`PENDING`)
 - [ ] Security headers enabled via `helmet` and secure CORS policies (`PENDING`)
-- [ ] Zero secrets in frontend; external API keys strictly isolated in backend `.env` (`PENDING`)
+- [x] Zero secrets in frontend; external API keys strictly isolated in backend `.env` (`WORKING` - Frontend uses VITE_API_URL only)
 
 ---
 
 ## 7. AI & Fallback Requirements
 
-- [ ] **Mood Categories Mapped**:
+- [x] **Mood Categories Mapped**:
   - `Happy`: Comedy, Family, Adventure, Feel-Good
   - `Sad`: Drama, Inspirational, Feel-Good
   - `Romantic`: Romance, Drama, Romantic Comedy
@@ -104,10 +104,11 @@
   - `Relaxed`: Comedy, Family, Animation, Light Drama
   - `Fearful`: Horror, Mystery, Thriller
   - `Motivated`: Biography, Sports, Inspirational, Drama
+  (`MOCKED` - Mapped in `frontend/src/constants/moods.js`)
 - [ ] **AI Classification Engine**: NLP service for text mood analysis (`PENDING`)
 - [ ] **Rule-based NLP Fallback**: Keyword/sentiment heuristic classifier if external AI API is unreachable (`PENDING`)
 - [ ] **Movie API Integration**: External TMDb / OMDb API service (`PENDING`)
-- [ ] **Local Movie Dataset Fallback**: Bundled JSON movie catalog if TMDb API is unavailable or rate-limited (`PENDING`)
+- [x] **Local Movie Dataset Fallback**: Bundled JSON movie catalog if TMDb API is unavailable or rate-limited (`MOCKED` - 24 mock movies with resilient gradient fallback in `frontend/src/data/movies.js`)
 
 ---
 
