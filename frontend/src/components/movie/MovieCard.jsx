@@ -4,10 +4,16 @@ import { motion } from 'framer-motion';
 import { Star, Film, Bookmark, Clock } from 'lucide-react';
 import { getMovieGradient, formatRuntime, getReleaseYear } from '../../utils/helpers';
 import Badge from '../common/Badge';
+import { useLibrary } from '../../context/LibraryContext';
 
-export default function MovieCard({ movie, onWatchlistToggle, isSaved = false }) {
+export default function MovieCard({ movie, onWatchlistToggle, isSaved: isSavedProp }) {
   const [imageError, setImageError] = useState(false);
   const { id, title, releaseDate, genres = [], overview, posterUrl, rating, runtime } = movie;
+
+  // Integrate with LibraryContext if props are not explicitly provided
+  const library = useLibrary();
+  const isSaved = isSavedProp !== undefined ? isSavedProp : library?.isWatchlisted(id);
+  const handleToggle = onWatchlistToggle || (() => library?.toggleWatchlist(movie));
 
   const showPlaceholder = !posterUrl || imageError;
   const gradientClass = getMovieGradient(title, genres[0]);
@@ -16,7 +22,7 @@ export default function MovieCard({ movie, onWatchlistToggle, isSaved = false })
     <motion.div
       whileHover={{ y: -8 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="group relative flex flex-col rounded-2xl overflow-hidden bg-[#12151f] border border-slate-800/80 hover:border-slate-700/80 shadow-lg shadow-black/40 hover:shadow-2xl hover:shadow-rose-500/10 transition-colors"
+      className="group relative flex flex-col rounded-2xl overflow-hidden bg-[#12151f] border border-slate-800/80 hover:border-slate-700/80 shadow-lg shadow-black/40 hover:shadow-2xl hover:shadow-rose-500/10 transition-colors h-full"
     >
       {/* Poster or Gradient Placeholder Container */}
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#0c0e15]">
@@ -91,24 +97,22 @@ export default function MovieCard({ movie, onWatchlistToggle, isSaved = false })
               View Details
             </Link>
 
-            {onWatchlistToggle && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onWatchlistToggle(movie);
-                }}
-                title={isSaved ? 'Remove from Watchlist' : 'Add to Watchlist'}
-                className={`p-2 rounded-xl border transition-all ${
-                  isSaved
-                    ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
-                    : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
-                }`}
-              >
-                <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToggle(movie);
+              }}
+              title={isSaved ? 'Remove from Watchlist' : 'Add to Watchlist'}
+              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                isSaved
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
+                  : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
+              }`}
+            >
+              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+            </button>
           </div>
         </div>
       </div>

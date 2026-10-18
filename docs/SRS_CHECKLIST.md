@@ -12,18 +12,18 @@
 
 | ID | Requirement Description | Status | Verification Check |
 |---|---|---|:---:|
-| **FR-01** | The system shall allow users to create an account | `PENDING` | [ ] |
-| **FR-02** | The system shall authenticate registered users securely (JWT) | `PENDING` | [ ] |
-| **FR-03** | The system shall allow a user to select a mood from supported categories | `PENDING` | [ ] |
-| **FR-04** | The system shall accept optional natural-language mood input | `PENDING` | [ ] |
-| **FR-05** | The system shall classify text into a supported mood category | `PENDING` | [ ] |
-| **FR-06** | The system shall generate movie recommendations based on mood and metadata | `PENDING` | [ ] |
-| **FR-07** | The system shall display movie title, release date, rating, and short overview | `PENDING` | [ ] |
-| **FR-08** | The system shall allow movie search with filtering | `PENDING` | [ ] |
-| **FR-09** | The system shall allow users to add or remove movies from a watchlist | `PENDING` | [ ] |
-| **FR-10** | The system shall allow users to submit ratings and reviews | `PENDING` | [ ] |
-| **FR-11** | The system shall maintain recommendation/history information where enabled | `PENDING` | [ ] |
-| **FR-12** | The admin shall be able to manage users and moderate reviews | `PENDING` | [ ] |
+| **FR-01** | The system shall allow users to create an account | `MOCKED` (Step F2) | [x] |
+| **FR-02** | The system shall authenticate registered users securely (JWT) | `MOCKED` (Step F2) | [x] |
+| **FR-03** | The system shall allow a user to select a mood from supported categories | `MOCKED` (Step F2) | [x] |
+| **FR-04** | The system shall accept optional natural-language mood input | `MOCKED` (Step F2) | [x] |
+| **FR-05** | The system shall classify text into a supported mood category | `MOCKED` (Step F2) | [x] |
+| **FR-06** | The system shall generate movie recommendations based on mood and metadata | `MOCKED` (Step F2) | [x] |
+| **FR-07** | The system shall display movie title, release date, rating, and short overview | `MOCKED` (Step F2) | [x] |
+| **FR-08** | The system shall allow movie search with filtering | `MOCKED` (Step F2) | [x] |
+| **FR-09** | The system shall allow users to add or remove movies from a watchlist | `MOCKED` (Step F2) | [x] |
+| **FR-10** | The system shall allow users to submit ratings and reviews | `MOCKED` (Step F2) | [x] |
+| **FR-11** | The system shall maintain recommendation/history information where enabled | `MOCKED` (Step F2) | [x] |
+| **FR-12** | The admin shall be able to manage users and moderate reviews | `MOCKED` (Step F2) | [x] |
 
 ---
 

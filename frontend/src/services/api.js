@@ -14,7 +14,7 @@ const api = axios.create({
 // Request Interceptor: Attach JWT token if present in localStorage
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('moodie_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -23,10 +23,18 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Standardize error responses
+// Response Interceptor: Standardize error responses and handle 401 Unauthorized
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('moodie_token');
+      localStorage.removeItem('moodie_user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      }
+    }
+
     const message =
       error.response?.data?.message ||
       error.message ||
