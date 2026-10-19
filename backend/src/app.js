@@ -1,0 +1,89 @@
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+const mongoose = require('mongoose');
+
+const AppError = require('./utils/AppError');
+const errorHandler = require('./middleware/errorHandler');
+const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
+const app = express();
+
+// 1. Security HTTP headers
+app.use(helmet());
+
+// 2. CORS configuration (restricted strictly to CLIENT_URL)
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(
+  cors({
+    origin: clientUrl,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+// 3. Request body parser (max 10kb limit to prevent payload attacks)
+app.use(express.json({ limit: '10kb' }));
+
+// 4. Development logging with morgan
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
+
+// 5. Global Rate Limiter (100 requests per 15 minutes)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many requests from this IP, please try again after 15 minutes.',
+  },
+});
+app.use('/api', globalLimiter);
+
+// 6. Strict Rate Limiter for Authentication (20 requests per 15 minutes)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many authentication attempts from this IP, please try again after 15 minutes.',
+  },
+});
+
+// 7. Health Check Route
+app.get('/api/health', (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  res.status(200).json({
+    status: 'ok',
+    time: new Date().toISOString(),
+    db: isDbConnected ? 'connected' : 'disconnected',
+  });
+});
+
+// 8. Mount feature routes
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/admin', adminRoutes);
+
+// 9. Unhandled routes (404 handler)
+app.use((req, res, next) => {
+  next(
+    new AppError(
+      `Cannot find endpoint ${req.method} ${req.originalUrl} on this server.`,
+      404
+    )
+  );
+});
+
+// 10. Centralized Error Handling Middleware
+app.use(errorHandler);
+
+module.exports = app;
