@@ -144,7 +144,7 @@ const updateMe = asyncHandler(async (req, res) => {
   if (preferences !== undefined) updates.preferences = preferences;
 
   const updatedUser = await User.findByIdAndUpdate(req.user._id, updates, {
-    new: true,
+    returnDocument: 'after',
     runValidators: true,
   });
 

@@ -52,9 +52,9 @@
 
 - [x] `POST /api/auth/register` — Register new user (`WORKING` - Step B1)
 - [x] `POST /api/auth/login` — Authenticate user and return JWT (`WORKING` - Step B1)
-- [ ] `GET /api/movies/search` — Search movies with query & filters (`PENDING`)
-- [ ] `GET /api/movies/:id` — Get detailed movie metadata (`PENDING`)
-- [ ] `POST /api/mood/analyze` — Analyze natural language mood input (`PENDING`)
+- [x] `GET /api/movies/search` — Search movies with query & filters (`WORKING` - Step B2)
+- [x] `GET /api/movies/:id` — Get detailed movie metadata (`WORKING` - Step B2)
+- [x] `POST /api/mood/analyze` — Analyze natural language mood input (`WORKING` - Step B2)
 - [ ] `POST /api/recommendations` — Generate recommendations for mood (`PENDING`)
 - [ ] `GET /api/watchlist` — Retrieve authenticated user's watchlist (`PENDING`)
 - [ ] `POST /api/watchlist` — Add movie to watchlist (`PENDING`)
@@ -142,18 +142,18 @@ The frontend architecture is now complete with all required views, responsive la
   - `Fearful`: Horror, Mystery, Thriller
   - `Motivated`: Biography, Sports, Inspirational, Drama
   (`MOCKED` - Mapped in `frontend/src/constants/moods.js`)
-- [ ] **AI Classification Engine**: NLP service for text mood analysis (`PENDING`)
-- [x] **Rule-based NLP Fallback**: Keyword/sentiment heuristic classifier if external AI API is unreachable (`MOCKED` - Implemented in `frontend/src/services/moodService.js`)
-- [ ] **Movie API Integration**: External TMDb / OMDb API service (`PENDING`)
-- [x] **Local Movie Dataset Fallback**: Bundled JSON movie catalog if TMDb API is unavailable or rate-limited (`MOCKED` - 24 mock movies with resilient gradient fallback in `frontend/src/data/movies.js`)
+- [ ] **AI Classification Engine**: NLP service for text mood analysis (`PENDING` - Gemini client implemented, awaits AI_API_KEY)
+- [x] **Rule-based NLP Fallback**: Keyword/sentiment heuristic classifier with Hinglish, Negation & Contrast (`WORKING` - Step B2 backend `localMoodClassifier.js`)
+- [ ] **Movie API Integration**: External TMDb / OMDb API service (`PENDING` - TMDb service implemented, awaits MOVIE_API_KEY)
+- [x] **Local Movie Dataset Fallback**: Bundled JSON movie catalog of 44 movies across 8 moods (`WORKING` - Step B2 backend `localMovies.js`)
 
 ---
 
 ## 9. Testing Requirements
 
-- [ ] Unit testing for recommendation algorithms and NLP fallback classifiers (`PENDING`)
+- [x] Unit testing for recommendation algorithms and NLP fallback classifiers (`WORKING` - Step B2, 24 unit tests passing)
 - [ ] API integration tests for auth, movies, mood analysis, watchlist, and reviews (`PENDING`)
 - [ ] End-to-end integration validation across Frontend, Backend, and MongoDB (`PENDING`)
-- [ ] Edge-case and validation testing (bad credentials, empty mood input, network timeouts) (`PENDING`)
+- [x] Edge-case and validation testing (bad credentials, empty mood input, network timeouts) (`WORKING` - Step B1/B2)
 - [x] Responsive UI verification across desktop, tablet, and mobile viewport sizes (`WORKING` - Breakpoints 320px–1440px tested)
 - [x] User acceptance walkthrough across all supported mood flows (`WORKING` - Step F1, F2, F3)

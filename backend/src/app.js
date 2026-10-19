@@ -9,6 +9,8 @@ const AppError = require('./utils/AppError');
 const errorHandler = require('./middleware/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const movieRoutes = require('./routes/movieRoutes');
+const moodRoutes = require('./routes/moodRoutes');
 
 const app = express();
 
@@ -72,6 +74,8 @@ app.get('/api/health', (req, res) => {
 // 8. Mount feature routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/movies', movieRoutes);
+app.use('/api/mood', moodRoutes);
 
 // 9. Unhandled routes (404 handler)
 app.use((req, res, next) => {
