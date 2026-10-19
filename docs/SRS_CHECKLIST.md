@@ -30,7 +30,7 @@
 ## 2. Non-Functional Requirements (NFR)
 
 - [x] **NFR-Performance**: Fast responsive pages; sub-second loading states with simulated delays (`MOCKED` - Step F2/F3)
-- [ ] **NFR-Security**: Passwords hashed with bcrypt; protected APIs guarded by JWT and role authorization (`PENDING`)
+- [x] **NFR-Security**: Passwords hashed with bcrypt; protected APIs guarded by JWT and role authorization (`WORKING` - Step B1)
 - [x] **NFR-Usability**: Clean, responsive, cinematic dark UI easy for beginner users (`WORKING` - Step F1/F2/F3)
 - [x] **NFR-Reliability**: Resilient architecture with ErrorBoundary, offline mock fallback datasets (`WORKING` - Step F3)
 - [ ] **NFR-Scalability**: Modular backend architecture permitting extensible recommendation strategies (`PENDING`)
@@ -41,17 +41,17 @@
 
 ## 3. Database Requirements (MongoDB + Mongoose)
 
-- [ ] **Users Collection**: `_id`, `name`, `email`, `passwordHash`, `role`, `favoriteMovies`, `watchlist`, `createdAt` (`PENDING`)
-- [ ] **Movies Collection**: `_id`, `externalMovieId`, `title`, `releaseDate`, `genres`, `overview`, `posterUrl`, `rating`, `runtime`, `language` (`PENDING`)
-- [ ] **Reviews Collection**: `_id`, `userId`, `movieId`, `rating`, `comment`, `sentiment`, `createdAt` (`PENDING`)
-- [ ] **Mood History Collection**: `_id`, `userId`, `inputText`, `detectedMood`, `recommendationIds`, `createdAt` (`PENDING`)
+- [x] **Users Collection**: `_id`, `name`, `email`, `passwordHash`, `role`, `favoriteMovies`, `watchlist`, `createdAt` (`WORKING` - Step B1)
+- [x] **Movies Collection**: `_id`, `externalMovieId`, `title`, `releaseDate`, `genres`, `overview`, `posterUrl`, `rating`, `runtime`, `language` (`WORKING` - Step B1)
+- [x] **Reviews Collection**: `_id`, `userId`, `movieId`, `rating`, `comment`, `sentiment`, `createdAt` (`WORKING` - Step B1)
+- [x] **Mood History Collection**: `_id`, `userId`, `inputText`, `detectedMood`, `recommendationIds`, `createdAt` (`WORKING` - Step B1)
 
 ---
 
 ## 4. REST API Requirements (Express.js)
 
-- [ ] `POST /api/auth/register` — Register new user (`PENDING`)
-- [ ] `POST /api/auth/login` — Authenticate user and return JWT (`PENDING`)
+- [x] `POST /api/auth/register` — Register new user (`WORKING` - Step B1)
+- [x] `POST /api/auth/login` — Authenticate user and return JWT (`WORKING` - Step B1)
 - [ ] `GET /api/movies/search` — Search movies with query & filters (`PENDING`)
 - [ ] `GET /api/movies/:id` — Get detailed movie metadata (`PENDING`)
 - [ ] `POST /api/mood/analyze` — Analyze natural language mood input (`PENDING`)
@@ -120,12 +120,12 @@ The frontend architecture is now complete with all required views, responsive la
 
 ## 7. Security Requirements
 
-- [ ] Passwords hashed using `bcryptjs` with appropriate salt rounds (`PENDING`)
-- [ ] JWT authentication with token expiry and Authorization Bearer header checks (`PENDING`)
-- [x] Role-Based Access Control (RBAC) middleware guarding admin routes and views (`MOCKED` - `AdminRoute.jsx` + `ForbiddenPage.jsx`)
-- [ ] Request input validation & sanitization (`express-validator`) on all endpoints (`PENDING`)
-- [ ] Rate limiting (`express-rate-limit`) to prevent brute-force attacks (`PENDING`)
-- [ ] Security headers enabled via `helmet` and secure CORS policies (`PENDING`)
+- [x] Passwords hashed using `bcryptjs` with appropriate salt rounds (`WORKING` - Step B1)
+- [x] JWT authentication with token expiry and Authorization Bearer header checks (`WORKING` - Step B1)
+- [x] Role-Based Access Control (RBAC) middleware guarding admin routes and views (`WORKING` - Backend `protect`/`authorize` & Frontend `AdminRoute.jsx` Step B1)
+- [x] Request input validation & sanitization (`express-validator`) on all endpoints (`WORKING` - Auth endpoints Step B1)
+- [x] Rate limiting (`express-rate-limit`) to prevent brute-force attacks (`WORKING` - Global & Auth Step B1)
+- [x] Security headers enabled via `helmet` and secure CORS policies (`WORKING` - Step B1)
 - [x] Zero secrets in frontend; external API keys strictly isolated in backend `.env` (`WORKING` - Frontend uses VITE_API_URL only)
 
 ---

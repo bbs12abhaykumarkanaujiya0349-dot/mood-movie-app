@@ -71,14 +71,13 @@ const userSchema = new mongoose.Schema(
 );
 
 // Prevent duplicate movie IDs inside favoriteMovies and watchlist arrays on save
-userSchema.pre('save', function (next) {
+userSchema.pre('save', function () {
   if (this.isModified('favoriteMovies') && Array.isArray(this.favoriteMovies)) {
     this.favoriteMovies = [...new Set(this.favoriteMovies.map((id) => id.toString()))];
   }
   if (this.isModified('watchlist') && Array.isArray(this.watchlist)) {
     this.watchlist = [...new Set(this.watchlist.map((id) => id.toString()))];
   }
-  next();
 });
 
 const User = mongoose.model('User', userSchema);

@@ -190,6 +190,84 @@ const runTests = async () => {
       record('8. /me with token (200)', false, e.message);
     }
 
+    // 8a. PATCH /api/auth/me (200) - Update profile
+    try {
+      const res = await makeRequest(
+        {
+          hostname: 'localhost',
+          port: process.env.PORT || 5000,
+          path: '/api/auth/me',
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        },
+        { name: 'Updated Name', preferences: { favoriteGenres: ['Sci-Fi', 'Action'] } }
+      );
+      const passed = res.status === 200 && res.body.success === true && res.body.user?.name === 'Updated Name';
+      record('8a. PATCH /api/auth/me (200)', passed, `status: ${res.status}, updated name: ${res.body.user?.name}`);
+    } catch (e) {
+      record('8a. PATCH /api/auth/me (200)', false, e.message);
+    }
+
+    // 8b. PATCH /api/auth/password with wrong current password (401)
+    try {
+      const res = await makeRequest(
+        {
+          hostname: 'localhost',
+          port: process.env.PORT || 5000,
+          path: '/api/auth/password',
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        },
+        { currentPassword: 'WrongPassword1', newPassword: 'NewPassword999!' }
+      );
+      const passed = res.status === 401 && res.body.success === false;
+      record('8b. PATCH /password wrong current (401)', passed, `status: ${res.status}, message: "${res.body.message}"`);
+    } catch (e) {
+      record('8b. PATCH /password wrong current (401)', false, e.message);
+    }
+
+    // 8c. PATCH /api/auth/password with valid passwords (200)
+    try {
+      const res = await makeRequest(
+        {
+          hostname: 'localhost',
+          port: process.env.PORT || 5000,
+          path: '/api/auth/password',
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        },
+        { currentPassword: testPassword, newPassword: 'NewPassword999!' }
+      );
+      const passed = res.status === 200 && res.body.success === true;
+      record('8c. PATCH /password valid (200)', passed, `status: ${res.status}, message: "${res.body.message}"`);
+    } catch (e) {
+      record('8c. PATCH /password valid (200)', false, e.message);
+    }
+
+    // 8d. POST /api/auth/logout (200)
+    try {
+      const res = await makeRequest({
+        hostname: 'localhost',
+        port: process.env.PORT || 5000,
+        path: '/api/auth/logout',
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const passed = res.status === 200 && res.body.success === true;
+      record('8d. POST /api/auth/logout (200)', passed, `status: ${res.status}, message: "${res.body.message}"`);
+    } catch (e) {
+      record('8d. POST /api/auth/logout (200)', false, e.message);
+    }
+
     // 9. /admin/ping as USER (403)
     try {
       const res = await makeRequest({
@@ -208,7 +286,7 @@ const runTests = async () => {
     // 10. Promote user to ADMIN directly in DB, re-login & test /admin/ping (200)
     try {
       await User.findByIdAndUpdate(userId, { role: 'ADMIN' });
-      // Re-login to get updated JWT token with ADMIN role
+      // Re-login to get updated JWT token with ADMIN role (using new password from test 8c)
       const loginRes = await makeRequest(
         {
           hostname: 'localhost',
@@ -217,7 +295,7 @@ const runTests = async () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         },
-        { email: testEmail, password: testPassword }
+        { email: testEmail, password: 'NewPassword999!' }
       );
       const adminToken = loginRes.body.token;
 
@@ -245,7 +323,7 @@ const runTests = async () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         },
-        { email: testEmail, password: testPassword }
+        { email: testEmail, password: 'NewPassword999!' }
       );
       const passed = res.status === 403 && res.body.success === false;
       record('11. Blocked user login (403)', passed, `status: ${res.status}, message: "${res.body.message}"`);
