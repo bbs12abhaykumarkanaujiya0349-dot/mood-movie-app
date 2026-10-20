@@ -17,7 +17,7 @@ Base URL: `http://localhost:5000` (or configured `PORT`)
 8. [Reviews & Sentiment (`/api/reviews`)](#8-reviews--sentiment-apireviews)
 9. [Mood History (`/api/history`)](#9-mood-history-apihistory)
 10. [User Profile & Stats (`/api/users`)](#10-user-profile--stats-apiusers)
-11. [Admin Verification (`/api/admin`)](#11-admin-verification-apiadmin)
+11. [Admin Governance & Analytics (`/api/admin`)](#11-admin-governance--analytics-apiadmin)
 
 ---
 
@@ -569,12 +569,258 @@ Base URL: `http://localhost:5000` (or configured `PORT`)
 
 ---
 
-## 11. Admin Verification (`/api/admin`)
+## 11. Admin Governance & Analytics (`/api/admin`)
+
+All `/api/admin/*` endpoints strictly enforce Role-Based Access Control: valid Bearer JWT required and user `role` must be `"ADMIN"`. Non-admin requests receive `403 Forbidden`.
 
 ### `GET /api/admin/ping`
-- **Description**: Role-Based Access Control sanity endpoint.
+- **Description**: Role-Based Access Control verification endpoint.
 - **Auth**: Required with `role: "ADMIN"` (`Bearer <admin_token>`)
-- **Success Response (200)**: `{ "success": true, "message": "Admin pong! Access verified." }`
+- **Success Response (200)**:
+  ```json
+  {
+    "success": true,
+    "message": "Admin pong! Access verified.",
+    "admin": {
+      "id": "6ad...",
+      "name": "Demo Admin",
+      "role": "ADMIN"
+    }
+  }
+  ```
 - **Error Responses**:
   - `401 Unauthorized`: Token missing or invalid.
   - `403 Forbidden`: Authenticated user does not possess `ADMIN` role.
+
+---
+
+### Admin User Management
+
+#### `GET /api/admin/users`
+- **Description**: List all registered users with search, role, status filtering, and pagination. Never exposes `passwordHash`.
+- **Auth**: Required with `role: "ADMIN"` (`Bearer <admin_token>`)
+- **Query Parameters**:
+  - `search` (string, optional): Regex search matching `name` or `email`.
+  - `role` (string, optional): Filter by `"USER"` or `"ADMIN"`.
+  - `status` (string, optional): Filter by `"active"` or `"blocked"`.
+  - `page` (number, default 1).
+  - `limit` (number, default 10, max 100).
+- **Success Response (200)**:
+  ```json
+  {
+    "success": true,
+    "count": 10,
+    "total": 14,
+    "page": 1,
+    "totalPages": 2,
+    "users": [
+      {
+        "_id": "6ad...",
+        "name": "Demo User",
+        "email": "user@moodie.demo",
+        "role": "USER",
+        "status": "active",
+        "lastActive": "2026-10-20T10:00:00.000Z",
+        "createdAt": "2026-08-01T10:00:00.000Z"
+      }
+    ]
+  }
+  ```
+
+#### `GET /api/admin/users/:id`
+- **Description**: Fetch specific user profile by ID.
+- **Auth**: Required with `role: "ADMIN"`
+- **Success Response (200)**: `{ "success": true, "user": { ... } }`
+- **Error Responses**:
+  - `404 Not Found`: User not found.
+
+#### `PATCH /api/admin/users/:id/status`
+- **Description**: Update user account status (`active` | `blocked`). Blocked users' existing tokens and future login attempts are immediately rejected with `403`. Admins cannot block their own account.
+- **Auth**: Required with `role: "ADMIN"`
+- **Body**: `{ "status": "blocked" }`
+- **Success Response (200)**:
+  ```json
+  {
+    "success": true,
+    "message": "User status successfully updated to \"blocked\".",
+    "user": { "id": "...", "status": "blocked" }
+  }
+  ```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid status value or attempting to block self (`"Admins cannot block their own account."`).
+  - `404 Not Found`: User not found.
+
+#### `PATCH /api/admin/users/:id/role`
+- **Description**: Change user role (`USER` | `ADMIN`). Admins cannot demote themselves. Protects against demoting the last remaining administrator.
+- **Auth**: Required with `role: "ADMIN"`
+- **Body**: `{ "role": "ADMIN" }`
+- **Success Response (200)**: `{ "success": true, "message": "User role successfully updated to \"ADMIN\".", "user": { ... } }`
+- **Error Responses**:
+  - `400 Bad Request`: Invalid role, attempting to demote self, or demoting the last remaining active admin.
+  - `404 Not Found`: User not found.
+
+#### `DELETE /api/admin/users/:id`
+- **Description**: Delete user account and cascade delete all their written reviews and mood history records. Admins cannot delete their own account or the last remaining administrator.
+- **Auth**: Required with `role: "ADMIN"`
+- **Success Response (200)**: `{ "success": true, "message": "User account and associated reviews and history have been deleted." }`
+- **Error Responses**:
+  - `400 Bad Request`: Attempting to delete self or last remaining admin.
+  - `404 Not Found`: User not found.
+
+---
+
+### Admin Review Moderation
+
+#### `GET /api/admin/reviews`
+- **Description**: List all user reviews for moderation with search, sentiment, status filters, and populated user (`name`, `email`) and movie (`title`, `posterUrl`).
+- **Auth**: Required with `role: "ADMIN"`
+- **Query Parameters**:
+  - `search` (string, optional): Keyword search in comment text.
+  - `sentiment` (string, optional): `"positive"` | `"neutral"` | `"negative"`.
+  - `status` (string, optional): `"visible"` | `"hidden"`.
+  - `page` (number, default 1).
+  - `limit` (number, default 10).
+- **Success Response (200)**:
+  ```json
+  {
+    "success": true,
+    "count": 10,
+    "total": 30,
+    "page": 1,
+    "totalPages": 3,
+    "reviews": [
+      {
+        "_id": "6ad...",
+        "rating": 5,
+        "comment": "An absolute cinematic masterpiece...",
+        "sentiment": "positive",
+        "status": "visible",
+        "userId": { "name": "Demo User", "email": "user@moodie.demo" },
+        "movieId": { "title": "Inception", "externalMovieId": "tt1375666", "rating": 8.8 }
+      }
+    ]
+  }
+  ```
+
+#### `PATCH /api/admin/reviews/:id/status`
+- **Description**: Moderates review visibility (`visible` | `hidden`). Hidden reviews are excluded from public movie detail views.
+- **Auth**: Required with `role: "ADMIN"`
+- **Body**: `{ "status": "hidden" }`
+- **Success Response (200)**: `{ "success": true, "message": "Review status updated to \"hidden\".", "review": { ... } }`
+- **Error Responses**:
+  - `400 Bad Request`: Invalid status value.
+  - `404 Not Found`: Review not found.
+
+#### `DELETE /api/admin/reviews/:id`
+- **Description**: Permanently delete a review by ID.
+- **Auth**: Required with `role: "ADMIN"`
+- **Success Response (200)**: `{ "success": true, "message": "Review deleted successfully." }`
+- **Error Responses**:
+  - `404 Not Found`: Review not found.
+
+---
+
+### Admin Movie Catalog Management
+
+#### `GET /api/admin/movies`
+- **Description**: Browse all movies in the MongoDB catalog with search and pagination.
+- **Auth**: Required with `role: "ADMIN"`
+- **Query Parameters**: `search` (matches title, director, externalMovieId), `page` (default 1), `limit` (default 10).
+- **Success Response (200)**: `{ "success": true, "count": 10, "total": 60, "page": 1, "totalPages": 6, "movies": [...] }`
+
+#### `POST /api/admin/movies`
+- **Description**: Manually create and add a movie to the catalog (source `"local"`).
+- **Auth**: Required with `role: "ADMIN"`
+- **Body**:
+  ```json
+  {
+    "title": "Interstellar Journey",
+    "genres": ["Sci-Fi", "Adventure"],
+    "releaseDate": "2026-10-20",
+    "overview": "A gripping deep space mission.",
+    "rating": 8.7,
+    "runtime": 145,
+    "director": "Elena Rostova",
+    "cast": ["Actor A", "Actor B"]
+  }
+  ```
+- **Success Response (201)**: `{ "success": true, "message": "Movie created successfully.", "movie": { ... } }`
+- **Error Responses**:
+  - `400 Bad Request`: Title is missing or invalid.
+
+#### `PATCH /api/admin/movies/:id`
+- **Description**: Edit metadata for a catalog movie.
+- **Auth**: Required with `role: "ADMIN"`
+- **Body**: `{ "title": "Updated Title", "rating": 9.1 }`
+- **Success Response (200)**: `{ "success": true, "message": "Movie updated successfully.", "movie": { ... } }`
+- **Error Responses**:
+  - `404 Not Found`: Movie not found.
+
+#### `DELETE /api/admin/movies/:id`
+- **Description**: Delete a movie from catalog, with cascade removal from all users' watchlists, favorites, and reviews.
+- **Auth**: Required with `role: "ADMIN"`
+- **Success Response (200)**: `{ "success": true, "message": "Movie deleted and removed from user libraries and reviews." }`
+- **Error Responses**:
+  - `404 Not Found`: Movie not found.
+
+---
+
+### Admin Analytics & Visualizations
+
+#### `GET /api/admin/analytics/overview`
+- **Description**: Aggregated summary statistics for admin telemetry cards.
+- **Auth**: Required with `role: "ADMIN"`
+- **Success Response (200)**:
+  ```json
+  {
+    "success": true,
+    "totalUsers": 14,
+    "totalMovies": 60,
+    "totalReviews": 30,
+    "totalRecommendations": 40,
+    "activeUsers": 12,
+    "popularMood": "Happy"
+  }
+  ```
+
+#### `GET /api/admin/analytics/charts`
+- **Description**: Aggregation pipelines returning 7 continuous datasets for charts. Fills date buckets with 0 to prevent timeline gaps.
+- **Auth**: Required with `role: "ADMIN"`
+- **Query Parameters**: `range` (required: `"7d"` | `"30d"` | `"90d"`, default `"30d"`).
+- **Success Response (200)**:
+  ```json
+  {
+    "success": true,
+    "range": "30d",
+    "userGrowth": [
+      { "date": "2026-09-21", "count": 1 },
+      { "date": "2026-09-22", "count": 0 }
+    ],
+    "moodDistribution": [
+      { "mood": "Happy", "count": 10 },
+      { "mood": "Excited", "count": 8 }
+    ],
+    "popularGenres": [
+      { "genre": "Drama", "count": 25 },
+      { "genre": "Action", "count": 22 }
+    ],
+    "mostReviewedMovies": [
+      { "title": "Inception", "reviewCount": 4, "averageRating": 4.8 }
+    ],
+    "userActivity": [
+      { "date": "2026-09-21", "recommendations": 2, "reviews": 1 },
+      { "date": "2026-09-22", "recommendations": 0, "reviews": 0 }
+    ],
+    "sentimentBreakdown": [
+      { "sentiment": "positive", "count": 15 },
+      { "sentiment": "neutral", "count": 8 },
+      { "sentiment": "negative", "count": 7 }
+    ],
+    "topRatedMovies": [
+      { "title": "The Shawshank Redemption", "rating": 9.3, "reviewCount": 3 }
+    ]
+  }
+  ```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid `range` parameter.
+

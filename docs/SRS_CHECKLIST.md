@@ -23,17 +23,17 @@
 | **FR-09** | The system shall allow users to add or remove movies from a watchlist | `WORKING` (Step B3) | [x] |
 | **FR-10** | The system shall allow users to submit ratings and reviews | `WORKING` (Step B3) | [x] |
 | **FR-11** | The system shall maintain recommendation/history information where enabled | `WORKING` (Step B3) | [x] |
-| **FR-12** | The admin shall be able to manage users and moderate reviews | `MOCKED` (Step F3 frontend, B4 backend pending) | [ ] |
+| **FR-12** | The admin shall be able to manage users and moderate reviews | `WORKING` (Step B4) | [x] |
 
 ---
 
 ## 2. Non-Functional Requirements (NFR)
 
 - [x] **NFR-Performance**: Fast responsive pages; sub-second loading states with simulated delays (`MOCKED` - Step F2/F3)
-- [x] **NFR-Security**: Passwords hashed with bcrypt; protected APIs guarded by JWT and role authorization (`WORKING` - Step B1/B3)
+- [x] **NFR-Security**: Passwords hashed with bcrypt; protected APIs guarded by JWT and role authorization (`WORKING` - Step B1/B3/B4)
 - [x] **NFR-Usability**: Clean, responsive, cinematic dark UI easy for beginner users (`WORKING` - Step F1/F2/F3)
 - [x] **NFR-Reliability**: Resilient architecture with ErrorBoundary, offline mock fallback datasets (`WORKING` - Step F3)
-- [x] **NFR-Scalability**: Modular backend architecture with pure-function hybrid scoring, explainable reason builder, sentiment analysis, and pluggable movie sources (`WORKING` - Step B3)
+- [x] **NFR-Scalability**: Modular backend architecture with pure-function hybrid scoring, explainable reason builder, sentiment analysis, and pluggable movie sources (`WORKING` - Step B3/B4)
 - [x] **NFR-Maintainability**: Clean separation into components, context, hooks, services, data, and layouts (`WORKING` - Step F1/F2/F3)
 - [x] **NFR-Compatibility**: Full cross-browser compatibility across modern desktop and mobile browsers (`WORKING` - Step F3)
 
@@ -41,10 +41,10 @@
 
 ## 3. Database Requirements (MongoDB + Mongoose)
 
-- [x] **Users Collection**: `_id`, `name`, `email`, `passwordHash`, `role`, `favoriteMovies`, `watchlist`, `preferences`, `createdAt` (`WORKING` - Step B1/B3)
-- [x] **Movies Collection**: `_id`, `externalId`, `title`, `releaseDate`, `genres`, `overview`, `posterUrl`, `rating`, `runtime`, `language` (`WORKING` - Step B1/B2/B3)
-- [x] **Reviews Collection**: `_id`, `userId`, `movieId`, `rating`, `comment`, `sentiment`, `status`, `createdAt` (`WORKING` - Step B1/B3)
-- [x] **Mood History Collection**: `_id`, `userId`, `inputText`, `detectedMood`, `confidence`, `recommendationIds`, `createdAt` (`WORKING` - Step B1/B3)
+- [x] **Users Collection**: `_id`, `name`, `email`, `passwordHash`, `role`, `favoriteMovies`, `watchlist`, `preferences`, `createdAt` (`WORKING` - Step B1/B3/B4)
+- [x] **Movies Collection**: `_id`, `externalId`, `title`, `releaseDate`, `genres`, `overview`, `posterUrl`, `rating`, `runtime`, `language` (`WORKING` - Step B1/B2/B3/B4)
+- [x] **Reviews Collection**: `_id`, `userId`, `movieId`, `rating`, `comment`, `sentiment`, `status`, `createdAt` (`WORKING` - Step B1/B3/B4)
+- [x] **Mood History Collection**: `_id`, `userId`, `inputText`, `detectedMood`, `confidence`, `recommendationIds`, `createdAt` (`WORKING` - Step B1/B3/B4)
 
 ---
 
@@ -73,9 +73,20 @@
 - [x] `GET /api/users/me/stats` — User profile stats and counts (`WORKING` - Step B3)
 - [x] `PATCH /api/users/me/preferences` — Update preferred genres and language (`WORKING` - Step B3)
 - [x] `DELETE /api/users/me` — Permanently delete account with cascade data cleanup (`WORKING` - Step B3)
-- [ ] `GET /api/admin/users` — Admin user management (`PENDING` - Step B4)
-- [ ] `DELETE /api/admin/reviews/:id` — Admin review moderation (`PENDING` - Step B4)
-- [ ] `GET /api/admin/stats` — Admin dashboard analytics (`PENDING` - Step B4)
+- [x] `GET /api/admin/users` — Admin user management with search, filter, pagination (`WORKING` - Step B4)
+- [x] `GET /api/admin/users/:id` — Admin user profile detail (`WORKING` - Step B4)
+- [x] `PATCH /api/admin/users/:id/status` — Admin update status (block/unblock) (`WORKING` - Step B4)
+- [x] `PATCH /api/admin/users/:id/role` — Admin update role (USER/ADMIN) (`WORKING` - Step B4)
+- [x] `DELETE /api/admin/users/:id` — Admin delete user with reviews & history cascade (`WORKING` - Step B4)
+- [x] `GET /api/admin/reviews` — Admin review moderation list with search & sentiment (`WORKING` - Step B4)
+- [x] `PATCH /api/admin/reviews/:id/status` — Admin review visibility moderation (`WORKING` - Step B4)
+- [x] `DELETE /api/admin/reviews/:id` — Admin delete review (`WORKING` - Step B4)
+- [x] `GET /api/admin/movies` — Admin movie catalog management (`WORKING` - Step B4)
+- [x] `POST /api/admin/movies` — Admin manual movie creation (source: "local") (`WORKING` - Step B4)
+- [x] `PATCH /api/admin/movies/:id` — Admin movie metadata update (`WORKING` - Step B4)
+- [x] `DELETE /api/admin/movies/:id` — Admin movie deletion with cascade removal from watchlists/reviews (`WORKING` - Step B4)
+- [x] `GET /api/admin/analytics/overview` — Admin dashboard summary analytics (`WORKING` - Step B4)
+- [x] `GET /api/admin/analytics/charts` — Admin time-series chart analytics (`WORKING` - Step B4)
 
 ---
 
@@ -163,10 +174,10 @@ The frontend architecture is now complete with all required views, responsive la
 
 ## 9. Testing Requirements
 
-- [x] Unit testing for recommendation algorithms, scoring, reason builder, sentiment analyzer, and NLP fallback classifiers (`WORKING` - 48 unit tests passing across 8 suites)
-- [x] API integration tests for auth, movies, mood analysis, recommendations, watchlist, favorites, reviews, history, and user profiles (`WORKING` - 86 API tests passing: Step B1 16/16, Step B2 19/19, OMDb 16/16, Step B3 35/35)
+- [x] Unit testing for recommendation algorithms, scoring, reason builder, sentiment analyzer, date bucketing, and NLP fallback classifiers (`WORKING` - 55 unit tests passing across 9 suites)
+- [x] API integration tests for auth, movies, mood analysis, recommendations, watchlist, favorites, reviews, history, user profiles, admin governance, and analytics (`WORKING` - 119 API tests passing: Step B1 16/16, Step B2 19/19, OMDb 16/16, Step B3 35/35, Step B4 33/33)
 - [ ] End-to-end integration validation across Frontend, Backend, and MongoDB (`PENDING` - Step B5/Integration)
-- [x] Edge-case and validation testing (bad credentials, duplicate prevention, XSS comment sanitization, ownership 403, missing 404, empty mood inputs) (`WORKING` - Step B1/B2/B3)
+- [x] Edge-case and validation testing (bad credentials, duplicate prevention, XSS comment sanitization, ownership 403, missing 404, self-block/delete 400, last admin protection, empty inputs) (`WORKING` - Step B1/B2/B3/B4)
 - [x] Responsive UI verification across desktop, tablet, and mobile viewport sizes (`WORKING` - Breakpoints 320px–1440px tested)
 - [x] User acceptance walkthrough across all supported mood flows (`WORKING` - Step F1, F2, F3)
 

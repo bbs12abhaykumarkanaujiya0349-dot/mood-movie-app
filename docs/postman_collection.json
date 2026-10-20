@@ -1,0 +1,614 @@
+{
+  "info": {
+    "_postman_id": "mood-movie-api-collection-v1",
+    "name": "Mood Movie API Collection",
+    "description": "Comprehensive Postman collection covering all endpoints in the AI Mood-Based Movie Recommendation System.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@moodie.demo\",\n  \"password\": \"User@12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"User@12345\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/password", "host": ["{{baseUrl}}"], "path": ["api", "auth", "password"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Movies Catalog",
+      "item": [
+        {
+          "name": "Search Movies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies/search?q=Inception&genre=Sci-Fi&minRating=8&page=1&limit=12",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "movies", "search"],
+              "query": [
+                { "key": "q", "value": "Inception" },
+                { "key": "genre", "value": "Sci-Fi" },
+                { "key": "minRating", "value": "8" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "12" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Trending Movies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/movies/trending", "host": ["{{baseUrl}}"], "path": ["api", "movies", "trending"] }
+          }
+        },
+        {
+          "name": "Popular Movies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/movies/popular", "host": ["{{baseUrl}}"], "path": ["api", "movies", "popular"] }
+          }
+        },
+        {
+          "name": "Genres List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/movies/genres", "host": ["{{baseUrl}}"], "path": ["api", "movies", "genres"] }
+          }
+        },
+        {
+          "name": "Movie Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/movies/tt1375666", "host": ["{{baseUrl}}"], "path": ["api", "movies", "tt1375666"] }
+          }
+        },
+        {
+          "name": "Similar Movies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/movies/tt1375666/similar", "host": ["{{baseUrl}}"], "path": ["api", "movies", "tt1375666", "similar"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Mood Analysis",
+      "item": [
+        {
+          "name": "Analyze Mood Text",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"I feel low and want something uplifting\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/mood/analyze", "host": ["{{baseUrl}}"], "path": ["api", "mood", "analyze"] }
+          }
+        },
+        {
+          "name": "Get Mood List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/mood/list", "host": ["{{baseUrl}}"], "path": ["api", "mood", "list"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Recommendations",
+      "item": [
+        {
+          "name": "Recommend by Mood",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mood\": \"Happy\",\n  \"limit\": 12,\n  \"refresh\": false\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/recommendations", "host": ["{{baseUrl}}"], "path": ["api", "recommendations"] }
+          }
+        },
+        {
+          "name": "Recommend by Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Looking for intense thrills and high adrenaline action!\",\n  \"limit\": 12\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/recommendations", "host": ["{{baseUrl}}"], "path": ["api", "recommendations"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Watchlist",
+      "item": [
+        {
+          "name": "Get Watchlist",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/watchlist", "host": ["{{baseUrl}}"], "path": ["api", "watchlist"] }
+          }
+        },
+        {
+          "name": "Add to Watchlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movieId\": \"tt1375666\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/watchlist", "host": ["{{baseUrl}}"], "path": ["api", "watchlist"] }
+          }
+        },
+        {
+          "name": "Remove from Watchlist",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/watchlist/tt1375666", "host": ["{{baseUrl}}"], "path": ["api", "watchlist", "tt1375666"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Favorites",
+      "item": [
+        {
+          "name": "Get Favorites",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/favorites", "host": ["{{baseUrl}}"], "path": ["api", "favorites"] }
+          }
+        },
+        {
+          "name": "Add to Favorites",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movieId\": \"tt0114709\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/favorites", "host": ["{{baseUrl}}"], "path": ["api", "favorites"] }
+          }
+        },
+        {
+          "name": "Remove from Favorites",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/favorites/tt0114709", "host": ["{{baseUrl}}"], "path": ["api", "favorites", "tt0114709"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Reviews",
+      "item": [
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movieId\": \"tt1375666\",\n  \"rating\": 5,\n  \"comment\": \"Exceptional sci-fi adventure with breathtaking storytelling!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/reviews", "host": ["{{baseUrl}}"], "path": ["api", "reviews"] }
+          }
+        },
+        {
+          "name": "Get Movie Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/reviews/tt1375666?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "tt1375666"] }
+          }
+        },
+        {
+          "name": "Update Review",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Rewatched it, still solid but pacing drags slightly in act 2.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/reviews/:id", "host": ["{{baseUrl}}"], "path": ["api", "reviews", ":id"] }
+          }
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/reviews/:id", "host": ["{{baseUrl}}"], "path": ["api", "reviews", ":id"] }
+          }
+        },
+        {
+          "name": "My Reviews",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/reviews/me/list", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "me", "list"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Mood History",
+      "item": [
+        {
+          "name": "Get Mood History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/history?mood=Happy&page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "history"] }
+          }
+        },
+        {
+          "name": "Delete History Item",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/history/:id", "host": ["{{baseUrl}}"], "path": ["api", "history", ":id"] }
+          }
+        },
+        {
+          "name": "Clear All History",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/history", "host": ["{{baseUrl}}"], "path": ["api", "history"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. User Profile",
+      "item": [
+        {
+          "name": "Get User Stats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/me/stats", "host": ["{{baseUrl}}"], "path": ["api", "users", "me", "stats"] }
+          }
+        },
+        {
+          "name": "Update Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"favoriteGenres\": [\"Sci-Fi\", \"Action\", \"Adventure\"],\n  \"language\": \"en\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/users/me/preferences", "host": ["{{baseUrl}}"], "path": ["api", "users", "me", "preferences"] }
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"User@12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api", "users", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Admin",
+      "item": [
+        {
+          "name": "Admin Ping",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/ping", "host": ["{{baseUrl}}"], "path": ["api", "admin", "ping"] }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?search=&role=&status=&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            }
+          }
+        },
+        {
+          "name": "Get User Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/users/:id", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":id"] }
+          }
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"blocked\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/admin/users/:id/status", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":id", "status"] }
+          }
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/admin/users/:id/role", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":id", "role"] }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/users/:id", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":id"] }
+          }
+        },
+        {
+          "name": "List Admin Reviews",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/reviews?search=&sentiment=&status=&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "reviews"]
+            }
+          }
+        },
+        {
+          "name": "Update Review Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"hidden\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/admin/reviews/:id/status", "host": ["{{baseUrl}}"], "path": ["api", "admin", "reviews", ":id", "status"] }
+          }
+        },
+        {
+          "name": "Delete Admin Review",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/reviews/:id", "host": ["{{baseUrl}}"], "path": ["api", "admin", "reviews", ":id"] }
+          }
+        },
+        {
+          "name": "List Admin Movies",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/movies?search=&page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "admin", "movies"] }
+          }
+        },
+        {
+          "name": "Create Manual Movie",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Epic Adventure\",\n  \"genres\": [\"Action\", \"Adventure\"],\n  \"releaseDate\": \"2026-10-20\",\n  \"overview\": \"A thrilling journey into uncharted territory.\",\n  \"rating\": 8.5,\n  \"runtime\": 120,\n  \"director\": \"John Director\",\n  \"cast\": [\"Actor One\", \"Actor Two\"]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/admin/movies", "host": ["{{baseUrl}}"], "path": ["api", "admin", "movies"] }
+          }
+        },
+        {
+          "name": "Update Admin Movie",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Epic Adventure (Director Cut)\",\n  \"rating\": 9.0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/admin/movies/:id", "host": ["{{baseUrl}}"], "path": ["api", "admin", "movies", ":id"] }
+          }
+        },
+        {
+          "name": "Delete Admin Movie",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/movies/:id", "host": ["{{baseUrl}}"], "path": ["api", "admin", "movies", ":id"] }
+          }
+        },
+        {
+          "name": "Analytics Overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/analytics/overview", "host": ["{{baseUrl}}"], "path": ["api", "admin", "analytics", "overview"] }
+          }
+        },
+        {
+          "name": "Analytics Charts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/analytics/charts?range=30d",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "analytics", "charts"],
+              "query": [{ "key": "range", "value": "30d" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

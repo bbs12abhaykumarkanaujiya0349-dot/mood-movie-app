@@ -38,7 +38,7 @@ const protect = asyncHandler(async (req, res, next) => {
   // Check if user account is blocked
   if (currentUser.status === 'blocked') {
     return next(
-      new AppError('Your account has been blocked. Please contact an administrator.', 403)
+      new AppError('Your account has been blocked. Please contact support.', 403)
     );
   }
 
