@@ -11,6 +11,12 @@ const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const movieRoutes = require('./routes/movieRoutes');
 const moodRoutes = require('./routes/moodRoutes');
+const recommendationRoutes = require('./routes/recommendationRoutes');
+const watchlistRoutes = require('./routes/watchlistRoutes');
+const favoriteRoutes = require('./routes/favoriteRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const historyRoutes = require('./routes/historyRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
@@ -76,6 +82,12 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/mood', moodRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/watchlist', watchlistRoutes);
+app.use('/api/favorites', favoriteRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/history', historyRoutes);
+app.use('/api/users', userRoutes);
 
 // 9. Unhandled routes (404 handler)
 app.use((req, res, next) => {

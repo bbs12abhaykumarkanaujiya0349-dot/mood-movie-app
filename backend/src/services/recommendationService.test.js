@@ -37,7 +37,7 @@ describe('Recommendation Service (with OMDb candidates)', () => {
     const scored = scoreMovieForMood(omdbCandidate1, ['Action', 'Adventure', 'Sci-Fi']);
     assert.ok(scored.matchScore >= 80);
     assert.deepEqual(scored.matchedGenres, ['Action', 'Adventure', 'Sci-Fi']);
-    assert.ok(scored.reason.includes('mood genres'));
+    assert.ok(scored.reason.includes('Matches') || scored.reason.includes('mood genres'));
   });
 
   test('2. Resiliently handles candidates with null ratings (OMDb N/A) without NaN', () => {
@@ -46,19 +46,19 @@ describe('Recommendation Service (with OMDb candidates)', () => {
     assert.ok(scored.matchScore >= 30);
   });
 
-  test('3. Recommends top matching movies for Happy mood', () => {
+  test('3. Recommends top matching movies for Happy mood', async () => {
     const candidates = [omdbCandidate1, omdbCandidateNullRating, omdbCandidateFamily];
-    const result = recommendForMood({ mood: 'Happy', candidates });
+    const result = await recommendForMood({ mood: 'Happy', candidates });
 
     assert.equal(result.mood, 'Happy');
     assert.equal(result.source, 'omdb');
     assert.ok(result.recommendations.length > 0);
     // Toy Story should rank highest for Happy mood because of Comedy & Family overlap
-    assert.equal(result.recommendations[0].title, 'Toy Story');
+    assert.equal(result.recommendations[0].movie?.title || result.recommendations[0].title, 'Toy Story');
   });
 
-  test('4. Gracefully handles invalid inputs and empty candidate lists', () => {
-    const result = recommendForMood({ mood: 'Relaxed', candidates: [] });
+  test('4. Gracefully handles invalid inputs and empty candidate lists', async () => {
+    const result = await recommendForMood({ mood: 'Relaxed', candidates: [] });
     assert.equal(result.recommendations.length, 0);
     assert.equal(result.total, 0);
   });

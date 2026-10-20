@@ -1,89 +1,189 @@
+const movieService = require('./movieService');
 const { MOOD_GENRES, SUPPORTED_MOODS } = require('../constants/moods');
+const { calculateHybridScore, computeMaxLogPop } = require('../recommendation/scoring');
+const { buildRecommendationReason } = require('../recommendation/reasonBuilder');
 const AppError = require('../utils/AppError');
 
 /**
- * Score a single candidate movie against a mood's target genres and metadata.
- * Works seamlessly across TMDb, OMDb (handling null ratings and empty fields), and local candidates.
+ * Normalizes user mood input into a supported mood category
  */
-const scoreMovieForMood = (movie, targetGenres) => {
-  if (!movie || typeof movie !== 'object') {
-    return null;
-  }
-
-  const movieGenres = Array.isArray(movie.genres) ? movie.genres : [];
-  const normalizedTargets = targetGenres.map((g) => g.toLowerCase());
-
-  // Find overlapping genres (case-insensitive)
-  const matchedGenres = movieGenres.filter((mg) => {
-    const mgLower = String(mg).toLowerCase();
-    return normalizedTargets.some((tg) => mgLower.includes(tg) || tg.includes(mgLower));
-  });
-
-  // 1. Genre Overlap Score (0 - 50 points)
-  const genreRatio = targetGenres.length > 0 ? matchedGenres.length / targetGenres.length : 0;
-  const genreScore = genreRatio * 50;
-
-  // 2. Rating Score (0 - 50 points)
-  // Safely handles OMDb null ratings without NaN
-  const numericRating = typeof movie.rating === 'number' && !isNaN(movie.rating) ? movie.rating : 0;
-  const ratingScore = (numericRating / 10) * 50;
-
-  // Total Match Score capped between 10 and 99
-  const baseScore = genreScore + ratingScore;
-  const matchScore = Math.min(Math.max(Math.round(baseScore), matchedGenres.length > 0 ? 30 : 10), 99);
-
-  let reason = 'Curated match based on emotional tone';
-  if (matchedGenres.length > 0) {
-    reason = `Matches ${matchedGenres.join(' & ')} mood genres`;
-  }
-
-  return {
-    ...movie,
-    matchScore,
-    reason,
-    matchedGenres,
-  };
+const normalizeMood = (mood) => {
+  if (!mood || typeof mood !== 'string') return null;
+  const clean = mood.trim().toLowerCase();
+  return (
+    SUPPORTED_MOODS.find((m) => m.toLowerCase() === clean) || null
+  );
 };
 
 /**
- * Generate ranked movie recommendations for a given mood from candidate movies
+ * Gathers candidate movies for a mood by querying movieService for each mapped genre + popular movies.
+ * Reuses MongoDB cache via movieService so external API limits are protected.
  */
-const recommendForMood = ({ mood, candidates = [], limit = 12 }) => {
-  if (!mood || typeof mood !== 'string') {
-    throw new AppError('Mood category must be provided as a string.', 400);
+const getCandidatesForMood = async (targetGenres = []) => {
+  const candidateMap = new Map();
+
+  // 1. Fetch movies for each mapped genre (up to 12 per genre)
+  for (const genre of targetGenres) {
+    try {
+      const searchRes = await movieService.searchMovies({ genre, limit: 12 });
+      if (searchRes && Array.isArray(searchRes.results)) {
+        for (const m of searchRes.results) {
+          const id = m.externalId || (m._id && m._id.toString());
+          if (id && !candidateMap.has(id)) {
+            candidateMap.set(id, m);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[RecommendationService] Error querying genre ${genre}:`, err.message);
+    }
   }
 
-  const cleanMood = mood.trim();
-  const normalizedMood =
-    SUPPORTED_MOODS.find((m) => m.toLowerCase() === cleanMood.toLowerCase()) || cleanMood;
+  // 2. Fetch popular movies to ensure candidate diversity
+  try {
+    const popularRes = await movieService.getPopularMovies(1);
+    if (popularRes && Array.isArray(popularRes.results)) {
+      for (const m of popularRes.results) {
+        const id = m.externalId || (m._id && m._id.toString());
+        if (id && !candidateMap.has(id)) {
+          candidateMap.set(id, m);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[RecommendationService] Error querying popular movies:', err.message);
+  }
+
+  return Array.from(candidateMap.values());
+};
+
+/**
+ * Generate ranked recommendations for a mood.
+ *
+ * @param {Object} params
+ * @param {string} params.mood - Mood name (e.g. 'Happy')
+ * @param {Object} [params.user] - Authenticated user object for personalization
+ * @param {number} [params.limit=12] - Number of recommendations (max 30)
+ * @param {boolean|number} [params.refresh=false] - Reshuffle/variation flag
+ * @param {Object[]} [params.candidates] - Optional pre-supplied candidate list (for tests)
+ * @returns {Promise<{ mood: string, source: string, recommendations: Object[], total: number }>}
+ */
+const getRecommendations = async ({
+  mood,
+  user = null,
+  limit = 12,
+  refresh = false,
+  candidates: providedCandidates = null,
+} = {}) => {
+  const normalizedMood = normalizeMood(mood);
+  if (!normalizedMood) {
+    throw new AppError(
+      `Invalid mood "${mood}". Supported moods: ${SUPPORTED_MOODS.join(', ')}`,
+      400
+    );
+  }
 
   const targetGenres = MOOD_GENRES[normalizedMood] || ['Drama'];
 
-  // Score all candidate movies
-  const scored = candidates
-    .map((m) => scoreMovieForMood(m, targetGenres))
-    .filter(Boolean);
+  // 1. Obtain candidates (use provided candidates for unit tests, or fetch from movieService)
+  let candidates = providedCandidates;
+  if (!Array.isArray(candidates)) {
+    candidates = await getCandidatesForMood(targetGenres);
+  }
 
-  // Sort by matchScore descending, then by popularity descending
-  scored.sort((a, b) => {
-    if (b.matchScore !== a.matchScore) {
-      return b.matchScore - a.matchScore;
-    }
-    return (b.popularity || 0) - (a.popularity || 0);
+  if (candidates.length === 0) {
+    return {
+      mood: normalizedMood,
+      source: 'local',
+      recommendations: [],
+      total: 0,
+      message: 'No candidate movies found for this mood.',
+    };
+  }
+
+  // 2. Extract personalization context if user is authenticated
+  const userPreferredGenres = user?.preferences?.favoriteGenres || [];
+  const watchlistIds = (user?.watchlist || []).map((id) => (id._id ? id._id.toString() : id.toString()));
+  const favoriteIds = (user?.favoriteMovies || []).map((id) => (id._id ? id._id.toString() : id.toString()));
+
+  const maxLogPop = computeMaxLogPop(candidates);
+  const detectedSource = candidates[0]?.source || 'omdb';
+
+  // 3. Score all candidates using pure functional hybrid scoring
+  const scored = candidates.map((movie) => {
+    const movieGenres = Array.isArray(movie.genres) ? movie.genres : [];
+    const normalizedTargets = targetGenres.map((g) => g.toLowerCase());
+    const matchedGenres = movieGenres.filter((mg) =>
+      normalizedTargets.some((tg) => mg.toLowerCase().includes(tg) || tg.includes(mg.toLowerCase()))
+    );
+
+    const scoreResult = calculateHybridScore(movie, {
+      targetGenres,
+      maxLogPop,
+      userPreferredGenres,
+      watchlistIds,
+      favoriteIds,
+    });
+
+    const reason = buildRecommendationReason({
+      movie,
+      mood: normalizedMood,
+      targetGenres,
+      userPreferredGenres,
+    });
+
+    return {
+      movie,
+      title: movie.title,
+      matchScore: scoreResult.matchScore,
+      reason,
+      matchedGenres,
+      inWatchlist: scoreResult.inWatchlist,
+      inFavorites: scoreResult.inFavorites,
+    };
   });
 
-  const topResults = scored.slice(0, Math.max(1, limit));
-  const detectedSource = (topResults[0] && topResults[0].source) || 'local';
+  // 4. Sort descending by matchScore
+  if (refresh) {
+    // Add small randomized variation within high scorers so user discovers fresh titles
+    scored.sort((a, b) => {
+      const jitterA = a.matchScore + (Math.random() * 6 - 3);
+      const jitterB = b.matchScore + (Math.random() * 6 - 3);
+      return jitterB - jitterA;
+    });
+  } else {
+    scored.sort((a, b) => {
+      if (b.matchScore !== a.matchScore) {
+        return b.matchScore - a.matchScore;
+      }
+      return (Number(b.movie.popularity) || 0) - (Number(a.movie.popularity) || 0);
+    });
+  }
+
+  // 5. Paginate/clamp limit
+  const cappedLimit = Math.min(30, Math.max(1, Number(limit) || 12));
+  const topRecommendations = scored.slice(0, cappedLimit);
 
   return {
     mood: normalizedMood,
     source: detectedSource,
-    recommendations: topResults,
+    recommendations: topRecommendations,
     total: scored.length,
   };
 };
 
 module.exports = {
-  scoreMovieForMood,
-  recommendForMood,
+  normalizeMood,
+  getCandidatesForMood,
+  getRecommendations,
+  recommendForMood: getRecommendations,
+  scoreMovieForMood: (movie, targetGenres) => {
+    const res = calculateHybridScore(movie, { targetGenres });
+    return {
+      ...movie,
+      matchScore: res.matchScore,
+      matchedGenres: movie.genres?.filter((g) => targetGenres.includes(g)) || [],
+      reason: buildRecommendationReason({ movie, targetGenres }),
+    };
+  },
 };

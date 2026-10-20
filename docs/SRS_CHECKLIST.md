@@ -12,28 +12,28 @@
 
 | ID | Requirement Description | Status | Verification Check |
 |---|---|---|:---:|
-| **FR-01** | The system shall allow users to create an account | `MOCKED` (Step F2) | [x] |
-| **FR-02** | The system shall authenticate registered users securely (JWT) | `MOCKED` (Step F2) | [x] |
-| **FR-03** | The system shall allow a user to select a mood from supported categories | `MOCKED` (Step F2) | [x] |
-| **FR-04** | The system shall accept optional natural-language mood input | `MOCKED` (Step F2) | [x] |
-| **FR-05** | The system shall classify text into a supported mood category | `MOCKED` (Step F2) | [x] |
-| **FR-06** | The system shall generate movie recommendations based on mood and metadata | `MOCKED` (Step F2) | [x] |
-| **FR-07** | The system shall display movie title, release date, rating, and short overview | `MOCKED` (Step F2) | [x] |
-| **FR-08** | The system shall allow movie search with filtering | `MOCKED` (Step F2) | [x] |
-| **FR-09** | The system shall allow users to add or remove movies from a watchlist | `MOCKED` (Step F2) | [x] |
-| **FR-10** | The system shall allow users to submit ratings and reviews | `MOCKED` (Step F2) | [x] |
-| **FR-11** | The system shall maintain recommendation/history information where enabled | `MOCKED` (Step F3) | [x] |
-| **FR-12** | The admin shall be able to manage users and moderate reviews | `MOCKED` (Step F3) | [x] |
+| **FR-01** | The system shall allow users to create an account | `WORKING` (Step B1) | [x] |
+| **FR-02** | The system shall authenticate registered users securely (JWT) | `WORKING` (Step B1) | [x] |
+| **FR-03** | The system shall allow a user to select a mood from supported categories | `WORKING` (Step B2/B3) | [x] |
+| **FR-04** | The system shall accept optional natural-language mood input | `WORKING` (Step B2/B3) | [x] |
+| **FR-05** | The system shall classify text into a supported mood category | `WORKING` (Step B2/B3) | [x] |
+| **FR-06** | The system shall generate movie recommendations based on mood and metadata | `WORKING` (Step B3) | [x] |
+| **FR-07** | The system shall display movie title, release date, rating, and short overview | `WORKING` (Step B2/B3) | [x] |
+| **FR-08** | The system shall allow movie search with filtering | `WORKING` (Step B2) | [x] |
+| **FR-09** | The system shall allow users to add or remove movies from a watchlist | `WORKING` (Step B3) | [x] |
+| **FR-10** | The system shall allow users to submit ratings and reviews | `WORKING` (Step B3) | [x] |
+| **FR-11** | The system shall maintain recommendation/history information where enabled | `WORKING` (Step B3) | [x] |
+| **FR-12** | The admin shall be able to manage users and moderate reviews | `MOCKED` (Step F3 frontend, B4 backend pending) | [ ] |
 
 ---
 
 ## 2. Non-Functional Requirements (NFR)
 
 - [x] **NFR-Performance**: Fast responsive pages; sub-second loading states with simulated delays (`MOCKED` - Step F2/F3)
-- [x] **NFR-Security**: Passwords hashed with bcrypt; protected APIs guarded by JWT and role authorization (`WORKING` - Step B1)
+- [x] **NFR-Security**: Passwords hashed with bcrypt; protected APIs guarded by JWT and role authorization (`WORKING` - Step B1/B3)
 - [x] **NFR-Usability**: Clean, responsive, cinematic dark UI easy for beginner users (`WORKING` - Step F1/F2/F3)
 - [x] **NFR-Reliability**: Resilient architecture with ErrorBoundary, offline mock fallback datasets (`WORKING` - Step F3)
-- [ ] **NFR-Scalability**: Modular backend architecture permitting extensible recommendation strategies (`PENDING`)
+- [x] **NFR-Scalability**: Modular backend architecture with pure-function hybrid scoring, explainable reason builder, sentiment analysis, and pluggable movie sources (`WORKING` - Step B3)
 - [x] **NFR-Maintainability**: Clean separation into components, context, hooks, services, data, and layouts (`WORKING` - Step F1/F2/F3)
 - [x] **NFR-Compatibility**: Full cross-browser compatibility across modern desktop and mobile browsers (`WORKING` - Step F3)
 
@@ -41,10 +41,10 @@
 
 ## 3. Database Requirements (MongoDB + Mongoose)
 
-- [x] **Users Collection**: `_id`, `name`, `email`, `passwordHash`, `role`, `favoriteMovies`, `watchlist`, `createdAt` (`WORKING` - Step B1)
-- [x] **Movies Collection**: `_id`, `externalMovieId`, `title`, `releaseDate`, `genres`, `overview`, `posterUrl`, `rating`, `runtime`, `language` (`WORKING` - Step B1)
-- [x] **Reviews Collection**: `_id`, `userId`, `movieId`, `rating`, `comment`, `sentiment`, `createdAt` (`WORKING` - Step B1)
-- [x] **Mood History Collection**: `_id`, `userId`, `inputText`, `detectedMood`, `recommendationIds`, `createdAt` (`WORKING` - Step B1)
+- [x] **Users Collection**: `_id`, `name`, `email`, `passwordHash`, `role`, `favoriteMovies`, `watchlist`, `preferences`, `createdAt` (`WORKING` - Step B1/B3)
+- [x] **Movies Collection**: `_id`, `externalId`, `title`, `releaseDate`, `genres`, `overview`, `posterUrl`, `rating`, `runtime`, `language` (`WORKING` - Step B1/B2/B3)
+- [x] **Reviews Collection**: `_id`, `userId`, `movieId`, `rating`, `comment`, `sentiment`, `status`, `createdAt` (`WORKING` - Step B1/B3)
+- [x] **Mood History Collection**: `_id`, `userId`, `inputText`, `detectedMood`, `confidence`, `recommendationIds`, `createdAt` (`WORKING` - Step B1/B3)
 
 ---
 
@@ -55,15 +55,27 @@
 - [x] `GET /api/movies/search` — Search movies with query & filters (`WORKING` - Step B2)
 - [x] `GET /api/movies/:id` — Get detailed movie metadata (`WORKING` - Step B2)
 - [x] `POST /api/mood/analyze` — Analyze natural language mood input (`WORKING` - Step B2)
-- [ ] `POST /api/recommendations` — Generate recommendations for mood (`PENDING`)
-- [ ] `GET /api/watchlist` — Retrieve authenticated user's watchlist (`PENDING`)
-- [ ] `POST /api/watchlist` — Add movie to watchlist (`PENDING`)
-- [ ] `DELETE /api/watchlist/:id` — Remove movie from watchlist (`PENDING`)
-- [ ] `POST /api/reviews` — Submit user movie review (`PENDING`)
-- [ ] `GET /api/reviews/:movieId` — Get reviews for specific movie (`PENDING`)
-- [ ] `GET /api/admin/users` — Admin user management (`PENDING`)
-- [ ] `DELETE /api/admin/reviews/:id` — Admin review moderation (`PENDING`)
-- [ ] `GET /api/admin/stats` — Admin dashboard analytics (`PENDING`)
+- [x] `POST /api/recommendations` — Hybrid mood recommendation engine with explainability & history logging (`WORKING` - Step B3)
+- [x] `GET /api/watchlist` — Retrieve authenticated user's watchlist (`WORKING` - Step B3)
+- [x] `POST /api/watchlist` — Add movie to watchlist with duplicate check (`WORKING` - Step B3)
+- [x] `DELETE /api/watchlist/:id` — Remove movie from watchlist (`WORKING` - Step B3)
+- [x] `GET /api/favorites` — Retrieve authenticated user's favorites (`WORKING` - Step B3)
+- [x] `POST /api/favorites` — Add movie to favorites (`WORKING` - Step B3)
+- [x] `DELETE /api/favorites/:id` — Remove movie from favorites (`WORKING` - Step B3)
+- [x] `POST /api/reviews` — Submit user movie review with sentiment analysis and XSS sanitization (`WORKING` - Step B3)
+- [x] `GET /api/reviews/:movieId` — Get public reviews for specific movie with summary metrics (`WORKING` - Step B3)
+- [x] `PATCH /api/reviews/:id` — Update review (owner only) (`WORKING` - Step B3)
+- [x] `DELETE /api/reviews/:id` — Delete review (owner or admin) (`WORKING` - Step B3)
+- [x] `GET /api/reviews/me/list` — Retrieve current user's reviews (`WORKING` - Step B3)
+- [x] `GET /api/history` — Get mood recommendation history (`WORKING` - Step B3)
+- [x] `DELETE /api/history/:id` — Delete single history entry (`WORKING` - Step B3)
+- [x] `DELETE /api/history` — Clear all history for user (`WORKING` - Step B3)
+- [x] `GET /api/users/me/stats` — User profile stats and counts (`WORKING` - Step B3)
+- [x] `PATCH /api/users/me/preferences` — Update preferred genres and language (`WORKING` - Step B3)
+- [x] `DELETE /api/users/me` — Permanently delete account with cascade data cleanup (`WORKING` - Step B3)
+- [ ] `GET /api/admin/users` — Admin user management (`PENDING` - Step B4)
+- [ ] `DELETE /api/admin/reviews/:id` — Admin review moderation (`PENDING` - Step B4)
+- [ ] `GET /api/admin/stats` — Admin dashboard analytics (`PENDING` - Step B4)
 
 ---
 
@@ -151,9 +163,10 @@ The frontend architecture is now complete with all required views, responsive la
 
 ## 9. Testing Requirements
 
-- [x] Unit testing for recommendation algorithms and NLP fallback classifiers (`WORKING` - 32 unit tests passing, including OMDb mapper, N/A handling, and recommendation candidate ranking)
-- [x] API integration tests for auth, movies, mood analysis, watchlist, and reviews (`WORKING` - Step B1 16/16, Step B2 19/19, and OMDb 16/16 tests passing)
-- [ ] End-to-end integration validation across Frontend, Backend, and MongoDB (`PENDING`)
-- [x] Edge-case and validation testing (bad credentials, empty mood input, network timeouts) (`WORKING` - Step B1/B2)
+- [x] Unit testing for recommendation algorithms, scoring, reason builder, sentiment analyzer, and NLP fallback classifiers (`WORKING` - 48 unit tests passing across 8 suites)
+- [x] API integration tests for auth, movies, mood analysis, recommendations, watchlist, favorites, reviews, history, and user profiles (`WORKING` - 86 API tests passing: Step B1 16/16, Step B2 19/19, OMDb 16/16, Step B3 35/35)
+- [ ] End-to-end integration validation across Frontend, Backend, and MongoDB (`PENDING` - Step B5/Integration)
+- [x] Edge-case and validation testing (bad credentials, duplicate prevention, XSS comment sanitization, ownership 403, missing 404, empty mood inputs) (`WORKING` - Step B1/B2/B3)
 - [x] Responsive UI verification across desktop, tablet, and mobile viewport sizes (`WORKING` - Breakpoints 320px–1440px tested)
 - [x] User acceptance walkthrough across all supported mood flows (`WORKING` - Step F1, F2, F3)
+

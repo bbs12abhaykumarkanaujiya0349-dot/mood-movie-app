@@ -308,7 +308,7 @@ const runOmdbTests = async () => {
     // 12. Recommendation Service with OMDb candidates test
     try {
       const curated = await movieService.getHydratedCuratedMovies();
-      const recResult = recommendationService.recommendForMood({
+      const recResult = await recommendationService.recommendForMood({
         mood: 'Excited',
         candidates: curated,
         limit: 10,
