@@ -40,14 +40,14 @@ const movieSchema = new mongoose.Schema(
     },
     rating: {
       type: Number,
-      default: 0,
+      default: null,
       min: 0,
       max: 10,
       index: true,
     },
     runtime: {
       type: Number,
-      default: 0,
+      default: null,
     },
     language: {
       type: String,
@@ -75,7 +75,7 @@ const movieSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ['tmdb', 'local'],
+      enum: ['tmdb', 'omdb', 'local'],
       default: 'local',
       index: true,
     },
@@ -85,8 +85,8 @@ const movieSchema = new mongoose.Schema(
   }
 );
 
-// Compound text index for title & overview searching
-movieSchema.index({ title: 'text', overview: 'text' });
+// Compound text index for title & overview searching (with language_override to avoid clashes with movie.language)
+movieSchema.index({ title: 'text', overview: 'text' }, { language_override: 'text_search_language' });
 
 const Movie = mongoose.model('Movie', movieSchema);
 

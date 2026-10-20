@@ -144,15 +144,15 @@ The frontend architecture is now complete with all required views, responsive la
   (`MOCKED` - Mapped in `frontend/src/constants/moods.js`)
 - [ ] **AI Classification Engine**: NLP service for text mood analysis (`PENDING` - Gemini client implemented, awaits AI_API_KEY)
 - [x] **Rule-based NLP Fallback**: Keyword/sentiment heuristic classifier with Hinglish, Negation & Contrast (`WORKING` - Step B2 backend `localMoodClassifier.js`)
-- [ ] **Movie API Integration**: External TMDb / OMDb API service (`PENDING` - TMDb service implemented, awaits MOVIE_API_KEY)
+- [x] **Movie API Integration**: External TMDb / OMDb API service (`WORKING` - OMDb service verified with active key and source "omdb"; TMDb service implemented, awaits MOVIE_API_KEY)
 - [x] **Local Movie Dataset Fallback**: Bundled JSON movie catalog of 44 movies across 8 moods (`WORKING` - Step B2 backend `localMovies.js`)
 
 ---
 
 ## 9. Testing Requirements
 
-- [x] Unit testing for recommendation algorithms and NLP fallback classifiers (`WORKING` - Step B2, 24 unit tests passing)
-- [ ] API integration tests for auth, movies, mood analysis, watchlist, and reviews (`PENDING`)
+- [x] Unit testing for recommendation algorithms and NLP fallback classifiers (`WORKING` - 32 unit tests passing, including OMDb mapper, N/A handling, and recommendation candidate ranking)
+- [x] API integration tests for auth, movies, mood analysis, watchlist, and reviews (`WORKING` - Step B1 16/16, Step B2 19/19, and OMDb 16/16 tests passing)
 - [ ] End-to-end integration validation across Frontend, Backend, and MongoDB (`PENDING`)
 - [x] Edge-case and validation testing (bad credentials, empty mood input, network timeouts) (`WORKING` - Step B1/B2)
 - [x] Responsive UI verification across desktop, tablet, and mobile viewport sizes (`WORKING` - Breakpoints 320px–1440px tested)

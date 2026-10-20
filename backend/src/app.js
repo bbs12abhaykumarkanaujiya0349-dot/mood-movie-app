@@ -36,10 +36,10 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// 5. Global Rate Limiter (100 requests per 15 minutes)
+// 5. Global Rate Limiter (1000 requests per 15 minutes in development/testing)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
