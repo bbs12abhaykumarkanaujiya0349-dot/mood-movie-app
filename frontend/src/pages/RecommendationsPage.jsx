@@ -8,7 +8,8 @@ import {
   CheckCircle,
   Film,
   Zap,
-  Sliders
+  Sliders,
+  Database
 } from 'lucide-react';
 import Container from '../components/common/Container';
 import Badge from '../components/common/Badge';
@@ -24,20 +25,31 @@ import toast from 'react-hot-toast';
 export default function RecommendationsPage() {
   const [searchParams] = useSearchParams();
   const moodId = searchParams.get('mood') || 'happy';
-  const confidenceParam = searchParams.get('confidence');
   const queryParam = searchParams.get('query');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
 
-  const activeMood = MOODS.find((m) => m.id === moodId) || MOODS[0];
+  const activeMood = MOODS.find((m) => m.id === moodId.toLowerCase()) || MOODS[0];
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = async (isRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await moodService.getRecommendations(moodId);
+      const options = {
+        limit: 12,
+        refresh: Boolean(isRefresh)
+      };
+
+      if (queryParam) {
+        options.text = decodeURIComponent(queryParam);
+      } else {
+        options.mood =
+          moodId.charAt(0).toUpperCase() + moodId.slice(1).toLowerCase();
+      }
+
+      const result = await moodService.getRecommendations(options);
       setData(result);
     } catch (err) {
       setError(err.message || 'Failed to generate recommendations');
@@ -47,17 +59,26 @@ export default function RecommendationsPage() {
   };
 
   useEffect(() => {
-    fetchRecommendations();
+    fetchRecommendations(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [moodId]);
+  }, [moodId, queryParam]);
 
   const handleRefresh = () => {
-    toast.promise(fetchRecommendations(), {
+    toast.promise(fetchRecommendations(true), {
       loading: 'Reshuffling recommendations...',
       success: 'Recommendations refreshed!',
       error: 'Failed to refresh recommendations'
     });
   };
+
+  const sourceLabel =
+    data?.source === 'omdb'
+      ? 'Live: OMDb'
+      : data?.source === 'tmdb'
+      ? 'Live: TMDb'
+      : 'Demo data';
+
+  const currentMoodLabel = data?.mood || activeMood.label;
 
   return (
     <div className="py-12 sm:py-16 text-left pb-24">
@@ -82,13 +103,26 @@ export default function RecommendationsPage() {
 
         {/* Hero Header Banner */}
         <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-r from-rose-950/40 via-purple-950/30 to-[#0e111a] border border-rose-500/20 shadow-2xl mb-10 space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="rose" size="md">
               FR-06: Mood Recommendation
             </Badge>
-            {confidenceParam && (
-              <Badge variant="emerald" size="md" dot>
-                {Math.round(parseFloat(confidenceParam) * 100)}% NLP Confidence
+
+            {/* Subtle Data Source Badge */}
+            {data?.source && (
+              <Badge
+                variant={data.source === 'omdb' || data.source === 'tmdb' ? 'emerald' : 'default'}
+                size="md"
+                dot
+              >
+                {sourceLabel}
+              </Badge>
+            )}
+
+            {/* Real NLP Confidence & Method from Backend */}
+            {data?.confidence !== undefined && (
+              <Badge variant="cyan" size="md" dot>
+                {Math.round(data.confidence * 100)}% Confidence ({data.method || 'rule-based'})
               </Badge>
             )}
           </div>
@@ -96,7 +130,7 @@ export default function RecommendationsPage() {
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight font-display">
             Because you're feeling{' '}
             <span className="bg-gradient-to-r from-rose-400 to-amber-300 bg-clip-text text-transparent">
-              {activeMood.label}
+              {currentMoodLabel}
             </span>
           </h1>
 
@@ -107,7 +141,11 @@ export default function RecommendationsPage() {
           )}
 
           <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
-            {activeMood.tagline}. Mapped to: <span className="text-slate-200 font-semibold">{activeMood.mappedGenres.join(', ')}</span>.
+            {activeMood.tagline}. Mapped to:{' '}
+            <span className="text-slate-200 font-semibold">
+              {activeMood.mappedGenres.join(', ')}
+            </span>
+            .
           </p>
 
           {/* Honest architectural note */}
@@ -139,7 +177,7 @@ export default function RecommendationsPage() {
           <ErrorState
             title="Failed to load recommendations"
             description={error}
-            onRetry={fetchRecommendations}
+            onRetry={() => fetchRecommendations(false)}
           />
         ) : !data || data.recommendations.length === 0 ? (
           <EmptyState
@@ -153,12 +191,15 @@ export default function RecommendationsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {data.recommendations.map((movie) => (
               <div key={movie.id} className="flex flex-col space-y-2">
-                {/* Match Score & Reason Chip */}
-                <div className="flex items-center justify-between text-xs px-2 pt-1">
+                {/* Match Score & Real Backend Reason */}
+                <div className="flex items-center justify-between text-xs px-2 pt-1 gap-2">
                   <Badge variant="amber" size="sm" dot>
                     {movie.matchScore}% Match
                   </Badge>
-                  <span className="text-[11px] text-slate-400 truncate max-w-[150px]">
+                  <span
+                    className="text-[11px] text-slate-400 truncate max-w-[170px]"
+                    title={movie.reason}
+                  >
                     {movie.reason}
                   </span>
                 </div>

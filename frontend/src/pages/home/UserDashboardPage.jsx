@@ -41,7 +41,7 @@ export default function UserDashboardPage() {
                 Personalized Dashboard
               </Badge>
               <Badge variant="amber" size="sm" dot>
-                {user?.role === 'admin' ? 'Administrator' : 'Standard Member'}
+                {user?.role?.toLowerCase() === 'admin' ? 'Administrator' : 'Standard Member'}
               </Badge>
             </div>
 

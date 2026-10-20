@@ -1,16 +1,12 @@
 import api from './api';
-import { MOCK_MOVIES } from '../data/movies';
-
-const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
+import { mapMovie } from '../utils/movieMapper';
 
 export const movieService = {
   /**
-   * Get movies with filtering, sorting, and pagination
-   * MOCK: replace with real API in integration step -> return (await api.get('/movies', { params })).data;
+   * Search movies with multi-attribute filtering, sorting, and pagination
+   * GET /api/movies/search
    */
   async getMovies(params = {}) {
-    await delay(400);
-
     const {
       search = '',
       genre = 'All',
@@ -22,99 +18,118 @@ export const movieService = {
       limit = 12
     } = params;
 
-    let results = [...MOCK_MOVIES];
+    const queryParams = {
+      page: Number(page) || 1,
+      limit: Number(limit) || 12
+    };
 
-    // Search filter (title or overview)
-    if (search.trim()) {
-      const q = search.toLowerCase().trim();
-      results = results.filter(
-        (m) =>
-          m.title.toLowerCase().includes(q) ||
-          m.overview.toLowerCase().includes(q)
-      );
+    if (search && search.trim()) {
+      queryParams.q = search.trim();
     }
-
-    // Genre filter
     if (genre && genre !== 'All') {
-      results = results.filter((m) => m.genres.includes(genre));
+      queryParams.genre = genre;
     }
-
-    // Year filter
     if (year && year !== 'All') {
-      results = results.filter((m) => m.releaseDate.startsWith(String(year)));
+      queryParams.year = year;
     }
-
-    // Min Rating filter
     if (minRating && minRating !== 'All') {
-      const ratingThreshold = parseFloat(minRating);
-      if (!isNaN(ratingThreshold)) {
-        results = results.filter((m) => m.rating >= ratingThreshold);
-      }
+      queryParams.minRating = Number(minRating);
     }
-
-    // Language filter
     if (language && language !== 'All') {
-      results = results.filter(
-        (m) => m.language.toLowerCase() === language.toLowerCase()
-      );
+      queryParams.language = language;
+    }
+    if (sort) {
+      queryParams.sort = sort;
     }
 
-    // Sorting
-    results.sort((a, b) => {
-      if (sort === 'rating') return b.rating - a.rating;
-      if (sort === 'newest') return new Date(b.releaseDate) - new Date(a.releaseDate);
-      // Default: popularity
-      return b.popularity - a.popularity;
-    });
+    const response = await api.get('/movies/search', { params: queryParams });
+    const data = response.data;
 
-    const total = results.length;
-    const startIndex = (page - 1) * limit;
-    const paginatedItems = results.slice(startIndex, startIndex + limit);
+    const rawList = data.results || [];
+    const mappedMovies = rawList.map(mapMovie);
 
     return {
-      movies: paginatedItems,
-      total,
-      page,
+      movies: mappedMovies,
+      total: data.totalResults ?? mappedMovies.length,
+      page: data.page ?? page,
       limit,
-      totalPages: Math.ceil(total / limit),
-      hasMore: startIndex + limit < total
+      totalPages:
+        data.totalPages ??
+        (Math.ceil((data.totalResults || mappedMovies.length) / limit) || 1),
+      hasMore: (data.page || page) < (data.totalPages || 1),
+      source: data.source || 'local'
     };
   },
 
   /**
-   * Get movie details by ID with extended cast, director, and trailer info
-   * MOCK: replace with real API in integration step -> return (await api.get(`/movies/${id}`)).data;
+   * Fetch complete movie metadata by IMDb externalId or Mongo ID
+   * GET /api/movies/:id
    */
   async getMovieById(id) {
-    await delay(350);
-
-    const movie = MOCK_MOVIES.find((m) => m.id === id);
-    if (!movie) {
-      throw new Error(`Movie with ID "${id}" was not found.`);
+    if (!id) {
+      throw new Error('A movie ID is required');
     }
 
-    // Enhance with mock director, cast, and trailer for rich details
+    const response = await api.get(`/movies/${encodeURIComponent(id)}`);
+    const data = response.data;
+
+    const movieData = data.movie || data;
+    return mapMovie({
+      ...movieData,
+      source: data.source || movieData.source
+    });
+  },
+
+  /**
+   * Fetch similar movies sharing genres with the specified movie
+   * GET /api/movies/:id/similar
+   */
+  async getSimilarMovies(id, genres = []) {
+    if (!id) return [];
+
+    try {
+      const response = await api.get(`/movies/${encodeURIComponent(id)}/similar`);
+      const results = response.data.results || [];
+      return results.map(mapMovie);
+    } catch (err) {
+      console.warn(`[movieService] Similar movies fetch failed for ID "${id}":`, err.message);
+      return [];
+    }
+  },
+
+  /**
+   * Fetch trending movies
+   * GET /api/movies/trending
+   */
+  async getTrending(page = 1) {
+    const response = await api.get('/movies/trending', { params: { page } });
+    const data = response.data;
     return {
-      ...movie,
-      director: 'Christopher Nolan / Sofia Coppola (Mock Directing)',
-      cast: ['Cillian Vance', 'Elena Rostova', 'Marcus Thorne', 'Aria Chen'],
-      tagline: 'When emotion shapes reality, every choice defines the universe.',
-      trailerUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+      ...data,
+      results: (data.results || []).map(mapMovie)
     };
   },
 
   /**
-   * Get similar movies based on genres
-   * MOCK: replace with real API in integration step -> return (await api.get(`/movies/${id}/similar`)).data;
+   * Fetch popular movies
+   * GET /api/movies/popular
    */
-  async getSimilarMovies(id, genres = []) {
-    await delay(300);
+  async getPopular(page = 1) {
+    const response = await api.get('/movies/popular', { params: { page } });
+    const data = response.data;
+    return {
+      ...data,
+      results: (data.results || []).map(mapMovie)
+    };
+  },
 
-    const similar = MOCK_MOVIES.filter(
-      (m) => m.id !== id && m.genres.some((g) => genres.includes(g))
-    ).slice(0, 4);
-
-    return similar;
+  /**
+   * Fetch recognized movie genres
+   * GET /api/movies/genres
+   */
+  async getGenres() {
+    const response = await api.get('/movies/genres');
+    return response.data.genres || [];
   }
 };
 

@@ -60,6 +60,7 @@ export default function MoviesPage() {
   const [page, setPage] = useState(1);
   const [movies, setMovies] = useState([]);
   const [total, setTotal] = useState(0);
+  const [source, setSource] = useState('local');
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -95,6 +96,7 @@ export default function MoviesPage() {
       }
 
       setTotal(data.total);
+      setSource(data.source || 'local');
       setHasMore(data.hasMore);
     } catch (err) {
       setError(err.message || 'Failed to fetch movies');
@@ -132,20 +134,36 @@ export default function MoviesPage() {
     selectedLanguage !== 'All' ||
     selectedSort !== 'popularity';
 
+  const sourceBadgeLabel =
+    source === 'omdb'
+      ? 'Live: OMDb'
+      : source === 'tmdb'
+      ? 'Live: TMDb'
+      : 'Demo data';
+
   return (
     <div className="py-12 sm:py-16 text-left">
       <Container>
         {/* Page Header */}
         <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <Badge variant="rose" size="md" className="mb-3">
-              FR-08: Movie Catalog & Discovery
-            </Badge>
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <Badge variant="rose" size="md">
+                FR-08: Movie Catalog & Discovery
+              </Badge>
+              <Badge
+                variant={source === 'omdb' || source === 'tmdb' ? 'emerald' : 'default'}
+                size="sm"
+                dot
+              >
+                {sourceBadgeLabel}
+              </Badge>
+            </div>
             <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight font-display">
               Movie Catalog
             </h1>
             <p className="text-sm sm:text-base text-slate-400 mt-2 max-w-2xl">
-              Explore 24+ curated films spanning diverse emotional tones, genres, and release years. Filter by criteria or search with instant debounce.
+              Explore curated films spanning diverse emotional tones, genres, and release years. Filter by criteria or search with instant debounce.
             </p>
           </div>
 

@@ -27,8 +27,8 @@ export default function ForbiddenPage() {
           </p>
 
           <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-400 mb-8 max-w-md mx-auto">
-            <p className="font-semibold text-slate-300 mb-1">Testing Tip:</p>
-            <p>Log in with any email containing <span className="text-amber-400 font-mono">admin</span> (e.g. <span className="text-amber-300 font-mono">admin@moodie.app</span>) to activate administrator role.</p>
+            <p className="font-semibold text-slate-300 mb-1">Administrative Access:</p>
+            <p>Log in with the administrator account <span className="text-amber-400 font-mono">admin@moodie.demo</span> to access the administration portal.</p>
           </div>
 
           <div className="flex items-center justify-center gap-3">

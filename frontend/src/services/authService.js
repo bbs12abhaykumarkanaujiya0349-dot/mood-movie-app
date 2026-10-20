@@ -1,93 +1,91 @@
 import api from './api';
 
-// Helper for simulated network delay (300-600ms)
-const delay = (ms = 450) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export const authService = {
   /**
-   * Authenticate user with credentials
-   * MOCK: replace with real API in integration step -> return (await api.post('/auth/login', credentials)).data;
+   * Authenticate user with credentials against the backend API.
+   * Role comes strictly from the backend response.
    */
   async login({ email, password }) {
-    await delay(450);
-
     if (!email || !password) {
       throw new Error('Email and password are required');
     }
 
-    // Role determined by email keyword per project spec
-    const role = email.toLowerCase().includes('admin') ? 'admin' : 'user';
-    const mockUser = {
-      id: `usr_${Date.now()}`,
-      name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-      email,
-      role,
-      createdAt: new Date().toISOString()
-    };
+    const response = await api.post('/auth/login', {
+      email: email.trim().toLowerCase(),
+      password
+    });
 
-    const mockToken = `mock_jwt_${btoa(JSON.stringify({ id: mockUser.id, role: mockUser.role, exp: Date.now() + 86400000 }))}`;
+    const { user, token } = response.data;
 
-    localStorage.setItem('moodie_token', mockToken);
-    localStorage.setItem('moodie_user', JSON.stringify(mockUser));
+    if (token) {
+      localStorage.setItem('moodie_token', token);
+    }
+    if (user) {
+      localStorage.setItem('moodie_user', JSON.stringify(user));
+    }
 
-    return { user: mockUser, token: mockToken };
+    return { user, token };
   },
 
   /**
-   * Register a new account
-   * MOCK: replace with real API in integration step -> return (await api.post('/auth/register', userData)).data;
+   * Register a new account against the backend API.
+   * Role comes strictly from the backend response (default USER).
    */
   async register({ name, email, password }) {
-    await delay(500);
-
     if (!name || !email || !password) {
       throw new Error('All registration fields are required');
     }
 
-    const role = email.toLowerCase().includes('admin') ? 'admin' : 'user';
-    const mockUser = {
-      id: `usr_${Date.now()}`,
-      name,
-      email,
-      role,
-      createdAt: new Date().toISOString()
-    };
+    const response = await api.post('/auth/register', {
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      password
+    });
 
-    const mockToken = `mock_jwt_${btoa(JSON.stringify({ id: mockUser.id, role: mockUser.role, exp: Date.now() + 86400000 }))}`;
+    const { user, token } = response.data;
 
-    localStorage.setItem('moodie_token', mockToken);
-    localStorage.setItem('moodie_user', JSON.stringify(mockUser));
+    if (token) {
+      localStorage.setItem('moodie_token', token);
+    }
+    if (user) {
+      localStorage.setItem('moodie_user', JSON.stringify(user));
+    }
 
-    return { user: mockUser, token: mockToken };
+    return { user, token };
   },
 
   /**
-   * Retrieve active session user
-   * MOCK: replace with real API in integration step -> return (await api.get('/auth/me')).data;
+   * Validate and retrieve the active session user via GET /auth/me.
+   */
+  async getMe() {
+    const response = await api.get('/auth/me');
+    const { user } = response.data;
+    if (user) {
+      localStorage.setItem('moodie_user', JSON.stringify(user));
+    }
+    return user;
+  },
+
+  /**
+   * Alias for getMe for backward compatibility.
    */
   async getCurrentUser() {
-    await delay(200);
-    const storedUser = localStorage.getItem('moodie_user');
-    const storedToken = localStorage.getItem('moodie_token');
-
-    if (storedUser && storedToken) {
-      try {
-        return JSON.parse(storedUser);
-      } catch {
-        return null;
-      }
-    }
-    return null;
+    return this.getMe();
   },
 
   /**
-   * Logout user and clear local credentials
-   * MOCK: replace with real API in integration step
+   * Logout user by notifying backend and clearing local credentials.
    */
   async logout() {
-    await delay(150);
-    localStorage.removeItem('moodie_token');
-    localStorage.removeItem('moodie_user');
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      // Swallowed on purpose: always ensure client state is cleared even if server or network fails
+      console.warn('Backend logout notification skipped or failed:', err.message);
+    } finally {
+      localStorage.removeItem('moodie_token');
+      localStorage.removeItem('moodie_user');
+    }
     return { success: true };
   }
 };

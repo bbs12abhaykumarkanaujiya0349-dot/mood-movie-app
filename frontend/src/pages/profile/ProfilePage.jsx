@@ -152,8 +152,8 @@ export default function ProfilePage() {
                 </p>
 
                 <div className="flex items-center gap-3 text-xs text-slate-400 pt-1">
-                  <Badge variant={user?.role === 'admin' ? 'amber' : 'emerald'} size="sm" dot>
-                    {user?.role === 'admin' ? 'Administrator' : 'Standard Member'}
+                  <Badge variant={user?.role?.toLowerCase() === 'admin' ? 'amber' : 'emerald'} size="sm" dot>
+                    {user?.role?.toLowerCase() === 'admin' ? 'Administrator' : 'Standard Member'}
                   </Badge>
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3 text-slate-500" />

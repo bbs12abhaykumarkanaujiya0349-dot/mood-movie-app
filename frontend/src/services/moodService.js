@@ -1,105 +1,93 @@
 import api from './api';
-import { MOODS } from '../constants/moods';
-import { MOCK_MOVIES } from '../data/movies';
-
-const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Keyword lexicons for rule-based sentiment classifier fallback
-const MOOD_LEXICONS = {
-  happy: ['happy', 'joy', 'laugh', 'cheer', 'fun', 'smile', 'uplift', 'light', 'good', 'humor', 'comedy'],
-  sad: ['sad', 'cry', 'tears', 'depressed', 'gloomy', 'low', 'down', 'lonely', 'heartbroken', 'melancholy', 'poignant'],
-  romantic: ['love', 'romance', 'couple', 'date', 'kiss', 'passion', 'romantic', 'heart', 'affection', 'sweetheart'],
-  angry: ['angry', 'mad', 'rage', 'revenge', 'furious', 'fight', 'action', 'destroy', 'annoyed', 'grudge'],
-  excited: ['excited', 'hyped', 'thrill', 'sci-fi', 'fast', 'adrenaline', 'adventure', 'epic', 'wild', 'rush'],
-  relaxed: ['calm', 'relax', 'peace', 'chill', 'soothing', 'gentle', 'sleep', 'quiet', 'cozy', 'rest', 'easy'],
-  fearful: ['scared', 'fear', 'horror', 'creepy', 'spooky', 'dark', 'ghost', 'shock', 'jump', 'tension', 'dread'],
-  motivated: ['inspire', 'motivate', 'ambition', 'work', 'grit', 'success', 'triumph', 'goal', 'gym', 'sports', 'legend']
-};
+import { mapRecommendation } from '../utils/movieMapper';
 
 export const moodService = {
   /**
-   * Classify free-text natural language input into a supported mood category
-   * MOCK: replace with real API in integration step -> return (await api.post('/mood/analyze', { text })).data;
+   * Classify free-text emotional natural language input into a supported mood category
+   * POST /api/mood/analyze
    */
   async analyzeMoodText(text = '') {
-    await delay(600);
-
-    const cleanText = text.toLowerCase().trim();
+    const cleanText = typeof text === 'string' ? text.trim() : '';
     if (!cleanText) {
       throw new Error('Please enter text to analyze your mood.');
     }
 
-    // Heuristic keyword matching
-    let bestMoodId = 'happy';
-    let highestScore = 0;
-
-    for (const [moodId, keywords] of Object.entries(MOOD_LEXICONS)) {
-      let score = 0;
-      for (const word of keywords) {
-        if (cleanText.includes(word)) {
-          score += 1;
-        }
-      }
-      if (score > highestScore) {
-        highestScore = score;
-        bestMoodId = moodId;
-      }
-    }
-
-    // Default to 'relaxed' if generic words or no direct match, with realistic confidence
-    const detectedMood = MOODS.find((m) => m.id === bestMoodId) || MOODS[0];
-    const confidence = highestScore > 0 ? Math.min(0.75 + highestScore * 0.08, 0.98) : 0.82;
+    const response = await api.post('/mood/analyze', { text: cleanText });
+    const data = response.data;
 
     return {
-      moodId: detectedMood.id,
-      label: detectedMood.label,
-      confidence: parseFloat(confidence.toFixed(2)),
+      moodId: (data.mood || 'happy').toLowerCase(),
+      label: data.mood,
+      confidence: typeof data.confidence === 'number' ? data.confidence : 0.85,
+      method: data.method || 'rule-based',
+      uncertain: Boolean(data.uncertain),
       inputText: text,
-      mappedGenres: detectedMood.mappedGenres,
-      rationale: `Matched ${highestScore > 0 ? highestScore : 1} affective emotional indicator(s) in your prompt.`
+      mappedGenres: data.genres || [],
+      matchedKeywords: data.matchedKeywords || [],
+      rationale: `Detected ${data.mood} mood via ${data.method || 'rule-based'} sentiment analysis.`
     };
   },
 
   /**
-   * Generate ranked recommendations based on mood
-   * MOCK: replace with real API in integration step -> return (await api.post('/recommendations', { moodId })).data;
+   * Retrieve all supported mood categories and mapped genres from backend
+   * GET /api/mood/list
    */
-  async getRecommendations(moodId) {
-    await delay(450);
+  async getMoodList() {
+    const response = await api.get('/mood/list');
+    const raw = response.data.moods;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') {
+      return Object.entries(raw).map(([key, val]) => ({
+        id: key.toLowerCase(),
+        label: val.label || key,
+        description: val.description || '',
+        genres: val.genres || []
+      }));
+    }
+    return [];
+  },
 
-    const moodObj = MOODS.find((m) => m.id === moodId) || MOODS[0];
+  /**
+   * Generate hybrid recommendations based on mood category or emotional text
+   * POST /api/recommendations
+   */
+  async getRecommendations(optionsOrMoodId) {
+    let payload = {};
 
-    // Filter candidate movies by mapped genres
-    const candidates = MOCK_MOVIES.map((movie) => {
-      const matchingGenres = movie.genres.filter((g) =>
-        moodObj.mappedGenres.includes(g)
-      );
+    if (typeof optionsOrMoodId === 'string') {
+      const formattedMood =
+        optionsOrMoodId.charAt(0).toUpperCase() +
+        optionsOrMoodId.slice(1).toLowerCase();
+      payload = { mood: formattedMood, limit: 12, refresh: false };
+    } else if (typeof optionsOrMoodId === 'object' && optionsOrMoodId !== null) {
+      const { mood, text, limit = 12, refresh = false } = optionsOrMoodId;
 
-      // Score calculation: genre overlap weight + rating weight
-      const genreScore = (matchingGenres.length / moodObj.mappedGenres.length) * 50;
-      const ratingScore = (movie.rating / 10) * 50;
-      const matchScore = Math.min(Math.round(genreScore + ratingScore), 99);
-
-      let reason = 'Curated match based on emotional tone';
-      if (matchingGenres.length > 0) {
-        reason = `Matches ${matchingGenres.join(' & ')} mood genres`;
+      if (mood) {
+        payload.mood =
+          typeof mood === 'string'
+            ? mood.charAt(0).toUpperCase() + mood.slice(1).toLowerCase()
+            : mood;
       }
+      if (text && text.trim()) {
+        payload.text = text.trim();
+      }
+      payload.limit = Number(limit) || 12;
+      payload.refresh = Boolean(refresh);
+    }
 
-      return {
-        ...movie,
-        matchScore,
-        reason,
-        matchedGenres: matchingGenres
-      };
-    });
+    const response = await api.post('/recommendations', payload);
+    const data = response.data;
 
-    // Sort by matchScore descending
-    candidates.sort((a, b) => b.matchScore - a.matchScore);
+    const rawList = data.recommendations || [];
+    const mappedRecs = rawList.map(mapRecommendation);
 
     return {
-      mood: moodObj,
-      recommendations: candidates.slice(0, 12),
-      total: candidates.length
+      mood: data.mood,
+      confidence: typeof data.confidence === 'number' ? data.confidence : 1.0,
+      method: data.method || 'rule-based',
+      source: data.source || 'local',
+      recommendations: mappedRecs,
+      total: mappedRecs.length
     };
   }
 };

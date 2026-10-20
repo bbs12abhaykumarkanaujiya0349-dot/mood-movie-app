@@ -39,6 +39,7 @@ export default function MovieDetailsPage() {
   const [similarMovies, setSimilarMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [imageError, setImageError] = useState(false);
 
   // Reviews state (local mock storage)
   const [reviews, setReviews] = useState([
@@ -63,6 +64,7 @@ export default function MovieDetailsPage() {
   const loadMovieDetails = async () => {
     setLoading(true);
     setError(null);
+    setImageError(false);
     try {
       const data = await movieService.getMovieById(id);
       setMovie(data);
@@ -168,22 +170,36 @@ export default function MovieDetailsPage() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-none" />
 
           <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-8">
-            {/* Visual Poster representation */}
-            <div className="w-36 sm:w-56 aspect-[2/3] rounded-2xl bg-[#0a0b10]/90 border border-white/10 shadow-2xl flex flex-col items-center justify-between p-4 text-center shrink-0">
-              <div className="w-full flex justify-between items-center text-slate-400">
-                <Film className="w-5 h-5 text-rose-400" />
-                <span className="text-[10px] font-bold uppercase">{movie.genres[0]}</span>
+            {/* Visual Poster or Gradient Placeholder representation */}
+            {movie.posterUrl && movie.posterUrl !== 'N/A' && !imageError ? (
+              <img
+                src={movie.posterUrl}
+                alt={movie.title}
+                onError={() => setImageError(true)}
+                className="w-36 sm:w-56 aspect-[2/3] rounded-2xl object-cover shadow-2xl border border-white/10 shrink-0"
+              />
+            ) : (
+              <div
+                className={`w-36 sm:w-56 aspect-[2/3] rounded-2xl bg-gradient-to-br ${gradientClass} border border-white/10 shadow-2xl flex flex-col items-center justify-between p-4 text-center shrink-0 relative overflow-hidden`}
+              >
+                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                <div className="w-full flex justify-between items-center text-slate-300 relative z-10">
+                  <Film className="w-5 h-5 text-rose-400" />
+                  <span className="text-[10px] font-bold uppercase">
+                    {movie.genres[0] || 'Cinema'}
+                  </span>
+                </div>
+                <div className="my-auto py-2 relative z-10">
+                  <h3 className="text-sm sm:text-base font-extrabold text-white leading-snug line-clamp-3">
+                    {movie.title}
+                  </h3>
+                </div>
+                <div className="w-full pt-2 border-t border-slate-700/60 text-[10px] text-slate-300 flex justify-between relative z-10">
+                  <span>{getReleaseYear(movie.releaseDate)}</span>
+                  <span className="text-amber-400 font-bold">★ {movie.rating}</span>
+                </div>
               </div>
-              <div className="my-auto py-2">
-                <h3 className="text-sm sm:text-base font-extrabold text-white leading-snug line-clamp-3">
-                  {movie.title}
-                </h3>
-              </div>
-              <div className="w-full pt-2 border-t border-slate-800 text-[10px] text-slate-400 flex justify-between">
-                <span>{getReleaseYear(movie.releaseDate)}</span>
-                <span className="text-amber-400 font-bold">★ {movie.rating}</span>
-              </div>
-            </div>
+            )}
 
             {/* Movie Info */}
             <div className="space-y-4 max-w-2xl">

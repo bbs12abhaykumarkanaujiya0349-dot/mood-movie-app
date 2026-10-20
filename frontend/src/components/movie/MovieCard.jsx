@@ -15,7 +15,7 @@ export default function MovieCard({ movie, onWatchlistToggle, isSaved: isSavedPr
   const isSaved = isSavedProp !== undefined ? isSavedProp : library?.isWatchlisted(id);
   const handleToggle = onWatchlistToggle || (() => library?.toggleWatchlist(movie));
 
-  const showPlaceholder = !posterUrl || imageError;
+  const showPlaceholder = !posterUrl || posterUrl === 'N/A' || imageError;
   const gradientClass = getMovieGradient(title, genres[0]);
 
   return (

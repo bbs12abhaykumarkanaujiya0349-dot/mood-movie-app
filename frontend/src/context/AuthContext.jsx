@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import authService from '../services/authService';
+import toast from 'react-hot-toast';
 
 export const AuthContext = createContext(null);
 
@@ -8,23 +9,60 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize auth state from localStorage on mount
+  // Initialize auth state and validate active session on mount
   useEffect(() => {
-    try {
+    let isMounted = true;
+
+    const initAuth = async () => {
       const storedToken = localStorage.getItem('moodie_token');
       const storedUser = localStorage.getItem('moodie_user');
 
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+      if (!storedToken) {
+        if (isMounted) setLoading(false);
+        return;
       }
-    } catch (err) {
-      console.error('Failed to restore auth session:', err);
-      localStorage.removeItem('moodie_token');
-      localStorage.removeItem('moodie_user');
-    } finally {
-      setLoading(false);
-    }
+
+      // Preload cached user to prevent UI flash while validating with /auth/me
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+          setToken(storedToken);
+        } catch {
+          // If corrupted, ignore
+        }
+      }
+
+      try {
+        const verifiedUser = await authService.getMe();
+        if (isMounted) {
+          setUser(verifiedUser);
+          setToken(storedToken);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+
+        // Check if user was blocked by admin (HTTP 403)
+        if (err.status === 403 || err.response?.status === 403) {
+          toast.error(err.message || 'Your account has been blocked. Please contact support.');
+        }
+
+        // Invalid, expired, or rejected session
+        localStorage.removeItem('moodie_token');
+        localStorage.removeItem('moodie_user');
+        setUser(null);
+        setToken(null);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async ({ email, password }) => {
@@ -70,7 +108,9 @@ export function AuthProvider({ children }) {
   };
 
   const isAuthenticated = Boolean(token && user);
-  const isAdmin = Boolean(user && user.role === 'admin');
+  const isAdmin = Boolean(
+    user && (user.role === 'ADMIN' || user.role === 'admin' || String(user.role).toUpperCase() === 'ADMIN')
+  );
 
   const value = {
     user,

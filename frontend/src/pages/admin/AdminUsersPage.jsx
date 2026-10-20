@@ -217,7 +217,7 @@ export default function AdminUsersPage() {
                     </td>
 
                     <td className="px-5 py-4">
-                      <Badge variant={u.role === 'admin' ? 'amber' : 'default'} size="sm">
+                      <Badge variant={u.role?.toLowerCase() === 'admin' ? 'amber' : 'default'} size="sm">
                         {u.role}
                       </Badge>
                     </td>

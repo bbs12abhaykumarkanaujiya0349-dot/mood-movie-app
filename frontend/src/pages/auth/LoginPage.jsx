@@ -54,7 +54,7 @@ export default function LoginPage() {
   };
 
   // Quick autofill buttons for testing
-  const autofill = (email, password = 'Password123') => {
+  const autofill = (email, password = 'User@12345') => {
     setValue('email', email, { shouldValidate: true });
     setValue('password', password, { shouldValidate: true });
   };
@@ -87,17 +87,17 @@ export default function LoginPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => autofill('student@mca.edu')}
+                  onClick={() => autofill('user@moodie.demo', 'User@12345')}
                   className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs transition-colors"
                 >
-                  Demo User: student@mca.edu
+                  Demo User: user@moodie.demo
                 </button>
                 <button
                   type="button"
-                  onClick={() => autofill('admin@moodie.app')}
+                  onClick={() => autofill('admin@moodie.demo', 'Admin@12345')}
                   className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-xs transition-colors"
                 >
-                  Admin: admin@moodie.app
+                  Admin: admin@moodie.demo
                 </button>
               </div>
             </div>

@@ -92,51 +92,51 @@
 
 ## 5. User Interface Requirements (React + Tailwind CSS)
 
-- [x] **Landing / Home Page**: Hero banner, quick mood selector, trending/featured movies (`MOCKED` - Step F1/F2)
-- [x] **Authentication Pages**: Clean login and registration placeholders (`MOCKED` - Step F1/F2)
-- [x] **Mood Selector Component**: Interactive mood cards with curated icons, colors, and prompt input (`MOCKED` - Step F1/F2)
-- [x] **Recommendations View**: Cinematic cards showing poster, title, rating, release year, genre tags (`MOCKED` - Step F1/F2)
-- [x] **Movie Details Page**: High-resolution backdrop/poster, overview, genre badges, runtime, cast, user reviews (`MOCKED` - Step F1/F2)
-- [x] **Search & Filter Page**: Real-time search by title, filter by genre, year, rating, language (`MOCKED` - Step F1/F2)
-- [x] **Watchlist Page**: Grid of saved movies with remove action and quick watch links (`MOCKED` - Step F1/F2)
-- [x] **Favorites Page**: Curated favorite titles with heart toggle and quick remove (`MOCKED` - Step F2)
-- [x] **Profile Page**: User details, recent mood history, favorite genres, written reviews (`MOCKED` - Step F3)
-- [x] **History Page**: Chronological timeline of mood submissions, confidence scores, and quick recommend (`MOCKED` - Step F3)
-- [x] **Settings Page**: Account management, password change with validation, genre preference chips, Danger Zone (`MOCKED` - Step F3)
+- [x] **Landing / Home Page**: Hero banner, quick mood selector, trending/featured movies (`MOCKED` - Step F1/F2, awaiting Step I2)
+- [x] **Authentication Pages**: Clean login and registration connected to real backend (`WORKING` - Step I1)
+- [x] **Mood Selector Component**: Interactive mood cards and NLP keyword analyzer connected to backend (`WORKING` - Step I1)
+- [x] **Recommendations View**: Cinematic cards with real matchScore, backend reason, source badge & confidence (`WORKING` - Step I1)
+- [x] **Movie Details Page**: High-resolution backdrop/poster, overview, genre badges, runtime, cast, similar movies (`WORKING` - Step I1; reviews MOCKED awaiting Step I2)
+- [x] **Search & Filter Page**: Real-time search by title, filter by genre, year, rating, language, sorting, pagination, source badge (`WORKING` - Step I1)
+- [x] **Watchlist Page**: Grid of saved movies with remove action and quick watch links (`MOCKED` - Step F1/F2, awaiting Step I2)
+- [x] **Favorites Page**: Curated favorite titles with heart toggle and quick remove (`MOCKED` - Step F2, awaiting Step I2)
+- [x] **Profile Page**: User details, recent mood history, favorite genres, written reviews (`MOCKED` - Step F3, awaiting Step I2)
+- [x] **History Page**: Chronological timeline of mood submissions, confidence scores, and quick recommend (`MOCKED` - Step F3, awaiting Step I2)
+- [x] **Settings Page**: Account management, password change with validation, genre preference chips, Danger Zone (`MOCKED` - Step F3, awaiting Step I2)
 - [x] **About Page**: Honest rule-based AI explanation, SRS matrix, tech stack cards, future scope (`WORKING` - Step F3)
-- [x] **Admin Dashboard**: Analytics cards, user management table, review moderation tools (`MOCKED` - Step F3)
-- [x] **Admin Users Management**: User search, role/status filters, block/unblock, delete with ConfirmDialog (`MOCKED` - Step F3)
-- [x] **Admin Review Moderation**: Sentiment filter, status toggle (hide/unhide), delete with ConfirmDialog (`MOCKED` - Step F3)
-- [x] **Admin Movie Catalog**: Movie table, search, pagination, Add Movie modal, Edit Movie modal, delete (`MOCKED` - Step F3)
-- [x] **Admin Analytics & Telemetry**: Recharts visualizations across 7d, 30d, 90d date ranges (`MOCKED` - Step F3)
+- [x] **Admin Dashboard**: Analytics cards, user management table, review moderation tools (`MOCKED` - Step F3, awaiting Step I2)
+- [x] **Admin Users Management**: User search, role/status filters, block/unblock, delete with ConfirmDialog (`MOCKED` - Step F3, awaiting Step I2)
+- [x] **Admin Review Moderation**: Sentiment filter, status toggle (hide/unhide), delete with ConfirmDialog (`MOCKED` - Step F3, awaiting Step I2)
+- [x] **Admin Movie Catalog**: Movie table, search, pagination, Add Movie modal, Edit Movie modal, delete (`MOCKED` - Step F3, awaiting Step I2)
+- [x] **Admin Analytics & Telemetry**: Recharts visualizations across 7d, 30d, 90d date ranges (`MOCKED` - Step F3, awaiting Step I2)
 
 ---
 
 ## 6. Frontend Complete Route Summary
 
-The frontend architecture is now complete with all required views, responsive layouts, design tokens, mock services, error boundary isolation, and confirmation dialogs.
+The frontend architecture connects AUTH, MOVIES, MOOD, and RECOMMENDATIONS to the real backend in Step I1, with remaining interactive libraries and admin views clearly marked as MOCKED awaiting Step I2.
 
-| Route Path | View / Feature | Access Type | Status | Mocked Data Source |
+| Route Path | View / Feature | Access Type | Status | Data Source / Integration |
 |---|---|---|:---:|:---:|
-| `/` | Landing / Hero / Quick Mood | Public | `MOCKED` | `movies.js`, `moods.js` |
+| `/` | Landing / Hero / Quick Mood | Public | `MOCKED` | `movies.js`, `moods.js` (awaiting Step I2) |
 | `/about` | Project Architecture & SRS Matrix | Public | `WORKING` | Static SRS Documentation |
-| `/movies` | Catalog Search & Filter | Public | `MOCKED` | `movies.js` |
-| `/movie/:id` | Movie Details & Community Reviews | Public | `MOCKED` | `movies.js`, `reviews.js` |
-| `/login` | User & Admin Sign In | Public | `MOCKED` | `authService.js` |
-| `/register` | New Account Registration | Public | `MOCKED` | `authService.js` |
-| `/home` | User Dashboard | Protected (User) | `MOCKED` | `movies.js`, `moodHistory.js` |
-| `/mood` | Mood Selection & Keyword Analyzer | Protected (User) | `MOCKED` | `moodService.js`, `moods.js` |
-| `/recommendations` | Mood Recommendations Engine | Protected (User) | `MOCKED` | `movieService.js` |
-| `/watchlist` | Watchlist Management | Protected (User) | `MOCKED` | `LibraryContext` (localStorage) |
-| `/favorites` | Favorites Management | Protected (User) | `MOCKED` | `LibraryContext` (localStorage) |
-| `/history` | Mood History Timeline | Protected (User) | `MOCKED` | `moodHistory.js`, `userService.js` |
-| `/profile` | Profile & Account Stats | Protected (User) | `MOCKED` | `userService.js`, `LibraryContext` |
-| `/settings` | Account, Password & Preferences | Protected (User) | `MOCKED` | `userService.js` |
-| `/admin` | Admin Governance Dashboard | Protected (Admin) | `MOCKED` | `adminService.js`, `analytics.js` |
-| `/admin/users` | User Account Governance | Protected (Admin) | `MOCKED` | `adminService.js`, `users.js` |
-| `/admin/reviews` | Review Moderation & Sentiment | Protected (Admin) | `MOCKED` | `adminService.js`, `reviews.js` |
-| `/admin/movies` | Catalog Management & Modals | Protected (Admin) | `MOCKED` | `adminService.js`, `movies.js` |
-| `/admin/analytics` | Recharts Visual Analytics (7d/30d/90d)| Protected (Admin) | `MOCKED` | `adminService.js`, `analytics.js` |
+| `/movies` | Catalog Search & Filter | Public | `WORKING` | Real API (`/api/movies/search`) - Step I1 |
+| `/movie/:id` | Movie Details & Similar Movies | Public | `WORKING` | Real API (`/api/movies/:id`) - Step I1 (reviews MOCKED for I2) |
+| `/login` | User & Admin Sign In | Public | `WORKING` | Real API (`/api/auth/login`) - Step I1 |
+| `/register` | New Account Registration | Public | `WORKING` | Real API (`/api/auth/register`) - Step I1 |
+| `/home` | User Dashboard | Protected (User) | `MOCKED` | `movies.js`, `moodHistory.js` (awaiting Step I2) |
+| `/mood` | Mood Selection & Keyword Analyzer | Protected (User) | `WORKING` | Real API (`/api/mood/analyze`, `/api/mood/list`) - Step I1 |
+| `/recommendations` | Mood Recommendations Engine | Protected (User) | `WORKING` | Real API (`/api/recommendations`) - Step I1 |
+| `/watchlist` | Watchlist Management | Protected (User) | `MOCKED` | `LibraryContext` (localStorage, awaiting Step I2) |
+| `/favorites` | Favorites Management | Protected (User) | `MOCKED` | `LibraryContext` (localStorage, awaiting Step I2) |
+| `/history` | Mood History Timeline | Protected (User) | `MOCKED` | `moodHistory.js`, `userService.js` (awaiting Step I2) |
+| `/profile` | Profile & Account Stats | Protected (User) | `MOCKED` | `userService.js`, `LibraryContext` (awaiting Step I2) |
+| `/settings` | Account, Password & Preferences | Protected (User) | `MOCKED` | `userService.js` (awaiting Step I2) |
+| `/admin` | Admin Governance Dashboard | Protected (Admin) | `MOCKED` | `adminService.js`, `analytics.js` (awaiting Step I2) |
+| `/admin/users` | User Account Governance | Protected (Admin) | `MOCKED` | `adminService.js`, `users.js` (awaiting Step I2) |
+| `/admin/reviews` | Review Moderation & Sentiment | Protected (Admin) | `MOCKED` | `adminService.js`, `reviews.js` (awaiting Step I2) |
+| `/admin/movies` | Catalog Management & Modals | Protected (Admin) | `MOCKED` | `adminService.js`, `movies.js` (awaiting Step I2) |
+| `/admin/analytics` | Recharts Visual Analytics (7d/30d/90d)| Protected (Admin) | `MOCKED` | `adminService.js`, `analytics.js` (awaiting Step I2) |
 | `*` | Custom 404 Not Found Page | Public | `WORKING` | Resilient Fallback |
 
 ---
