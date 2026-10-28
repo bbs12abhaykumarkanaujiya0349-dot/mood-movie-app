@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import Badge from '../../components/common/Badge';
 import Skeleton from '../../components/common/Skeleton';
+import ErrorState from '../../components/common/ErrorState';
 import adminService from '../../services/adminService';
 
 // Custom dark tooltip for recharts
@@ -50,21 +51,26 @@ function CustomChartTooltip({ active, payload, label }) {
 export default function AdminDashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchStats = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const stats = await adminService.getDashboardStats('7d');
+      setData(stats);
+    } catch (err) {
+      setError(err.message || 'Failed to load dashboard statistics');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      try {
-        const stats = await adminService.getDashboardStats('7d');
-        setData(stats);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchStats();
   }, []);
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="space-y-8 text-left">
         <Skeleton width="220px" height="32px" />
@@ -75,6 +81,18 @@ export default function AdminDashboardPage() {
           <Skeleton height="320px" className="rounded-3xl" />
           <Skeleton height="320px" className="rounded-3xl" />
         </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="py-12 text-left">
+        <ErrorState
+          title="Dashboard Telemetry Error"
+          description={error || 'Could not fetch system metrics from backend.'}
+          onRetry={fetchStats}
+        />
       </div>
     );
   }

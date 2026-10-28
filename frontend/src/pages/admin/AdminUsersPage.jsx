@@ -63,44 +63,41 @@ export default function AdminUsersPage() {
   }, [search, roleFilter, statusFilter, page]);
 
   const handleToggleBlock = async (u) => {
-    if (u.id === currentUser?.id || u.email === currentUser?.email) {
-      toast.error('You cannot block your own administrator account');
-      return;
-    }
-
     try {
       if (u.status === 'blocked') {
-        await adminService.unblockUser(u.id);
+        await adminService.unblockUser(u.id || u._id);
         toast.success(`User ${u.name} unblocked`);
       } else {
-        await adminService.blockUser(u.id);
+        await adminService.blockUser(u.id || u._id);
         toast.success(`User ${u.name} blocked`);
       }
       fetchUsers();
-    } catch {
-      toast.error('Failed to update user status');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update user status');
+    }
+  };
+
+  const handleRoleChange = async (u, newRole) => {
+    try {
+      await adminService.updateUserRole(u.id || u._id, newRole);
+      toast.success(`User ${u.name}'s role updated to ${newRole}`);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.message || 'Failed to update user role');
     }
   };
 
   const handleDeleteUser = async () => {
     if (!selectedUserForDelete) return;
-    if (
-      selectedUserForDelete.id === currentUser?.id ||
-      selectedUserForDelete.email === currentUser?.email
-    ) {
-      toast.error('You cannot delete your own account');
-      setSelectedUserForDelete(null);
-      return;
-    }
 
     setIsDeleting(true);
     try {
-      await adminService.deleteUser(selectedUserForDelete.id);
+      await adminService.deleteUser(selectedUserForDelete.id || selectedUserForDelete._id);
       toast.success(`User ${selectedUserForDelete.name} deleted`);
       setSelectedUserForDelete(null);
       fetchUsers();
-    } catch {
-      toast.error('Failed to delete user');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete user');
     } finally {
       setIsDeleting(false);
     }
@@ -217,9 +214,15 @@ export default function AdminUsersPage() {
                     </td>
 
                     <td className="px-5 py-4">
-                      <Badge variant={u.role?.toLowerCase() === 'admin' ? 'amber' : 'default'} size="sm">
-                        {u.role}
-                      </Badge>
+                      <select
+                        value={u.role?.toUpperCase()}
+                        onChange={(e) => handleRoleChange(u, e.target.value)}
+                        className="bg-slate-900 border border-slate-700 text-xs font-semibold rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-rose-500 cursor-pointer"
+                        title="Change user role"
+                      >
+                        <option value="USER">USER</option>
+                        <option value="ADMIN">ADMIN</option>
+                      </select>
                     </td>
 
                     <td className="px-5 py-4">
@@ -238,7 +241,6 @@ export default function AdminUsersPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleToggleBlock(u)}
-                          disabled={isSelf}
                           className={u.status === 'blocked' ? 'text-emerald-400' : 'text-amber-400'}
                           title={u.status === 'blocked' ? 'Unblock user' : 'Block user'}
                         >
@@ -259,7 +261,6 @@ export default function AdminUsersPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => setSelectedUserForDelete(u)}
-                          disabled={isSelf}
                           className="text-red-400 hover:text-red-300"
                           title="Delete user"
                         >

@@ -5,7 +5,7 @@
 export function mapMovie(movie) {
   if (!movie) return null;
 
-  const id = movie.id || movie.externalId || movie._id;
+  const id = movie.id || movie.externalMovieId || movie.externalId || (movie._id ? String(movie._id) : '');
   const posterUrl =
     !movie.posterUrl || movie.posterUrl === 'N/A' ? '' : movie.posterUrl;
   const backdropUrl =
@@ -14,7 +14,8 @@ export function mapMovie(movie) {
   return {
     ...movie,
     id,
-    externalId: movie.externalId || movie.id || movie._id,
+    externalId: movie.externalId || movie.externalMovieId || id,
+    externalMovieId: movie.externalMovieId || movie.externalId || id,
     title: movie.title || 'Untitled',
     releaseDate: movie.releaseDate || '',
     genres: Array.isArray(movie.genres) ? movie.genres : [],

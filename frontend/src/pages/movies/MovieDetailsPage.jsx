@@ -25,6 +25,7 @@ import MovieCard from '../../components/movie/MovieCard';
 import ReviewForm from '../../components/review/ReviewForm';
 import ReviewList from '../../components/review/ReviewList';
 import movieService from '../../services/movieService';
+import reviewService from '../../services/reviewService';
 import { useLibrary } from '../../context/LibraryContext';
 import useAuth from '../../hooks/useAuth';
 import { getMovieGradient, formatRuntime, getReleaseYear } from '../../utils/helpers';
@@ -41,25 +42,40 @@ export default function MovieDetailsPage() {
   const [error, setError] = useState(null);
   const [imageError, setImageError] = useState(false);
 
-  // Reviews state (local mock storage)
-  const [reviews, setReviews] = useState([
-    {
-      id: 'rev_1',
-      userId: 'mock_demo_user',
-      userName: 'Elena Chen',
-      rating: 9,
-      comment: 'The emotional pacing was breathtaking. The soundtrack carried the entire narrative to new heights.',
-      date: '2 days ago'
-    },
-    {
-      id: 'rev_2',
-      userId: 'mock_critic',
-      userName: 'Marcus Sterling',
-      rating: 8,
-      comment: 'A magnificent cinematic exploration of isolation and triumph. Highly recommended for a thoughtful evening.',
-      date: '1 week ago'
+  // Real Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [reviewSummary, setReviewSummary] = useState({ averageRating: 0, reviewCount: 0 });
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [reviewsTotalPages, setReviewsTotalPages] = useState(1);
+  const [editingReview, setEditingReview] = useState(null);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const loadReviews = async (page = 1) => {
+    setReviewsLoading(true);
+    try {
+      const data = await reviewService.getMovieReviews(id, { page, limit: 10 });
+      const rawReviews = data.reviews || [];
+      const mapped = rawReviews.map((r) => ({
+        id: r._id,
+        _id: r._id,
+        userId: r.userId?._id || r.userId?.id || r.userId,
+        userName: r.userId?.name || 'Community Reviewer',
+        rating: r.rating,
+        comment: r.comment,
+        sentiment: r.sentiment,
+        createdAt: r.createdAt
+      }));
+      setReviews(mapped);
+      setReviewSummary(data.summary || { averageRating: 0, reviewCount: mapped.length });
+      setReviewsPage(data.page || page);
+      setReviewsTotalPages(data.totalPages || 1);
+    } catch (err) {
+      console.warn('[MovieDetailsPage] Failed to fetch reviews:', err.message);
+    } finally {
+      setReviewsLoading(false);
     }
-  ]);
+  };
 
   const loadMovieDetails = async () => {
     setLoading(true);
@@ -71,6 +87,9 @@ export default function MovieDetailsPage() {
 
       const similar = await movieService.getSimilarMovies(id, data.genres);
       setSimilarMovies(similar);
+
+      // Load reviews
+      await loadReviews(1);
     } catch (err) {
       setError(err.message || 'Movie not found');
     } finally {
@@ -83,29 +102,71 @@ export default function MovieDetailsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
 
-  const handleAddReview = (newReviewData) => {
-    const newRev = {
-      id: `rev_${Date.now()}`,
-      userId: user?.id || 'guest_user',
-      userName: user?.name || 'You (Verified Reviewer)',
-      rating: newReviewData.rating,
-      comment: newReviewData.comment,
-      date: 'Just now'
-    };
-    setReviews([newRev, ...reviews]);
-    toast.success('Your review has been posted!');
+  const handleAddReview = async (reviewData) => {
+    if (!isAuthenticated) {
+      toast.error('Please log in to submit a review.');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    try {
+      if (editingReview) {
+        // Edit mode
+        await reviewService.updateReview(editingReview.id || editingReview._id, {
+          rating: reviewData.rating,
+          comment: reviewData.comment
+        });
+        toast.success('Your review has been updated!');
+        setEditingReview(null);
+      } else {
+        await reviewService.createReview({
+          movieId: id,
+          rating: reviewData.rating,
+          comment: reviewData.comment
+        });
+        toast.success('Your review has been posted!');
+      }
+      loadReviews(reviewsPage);
+    } catch (err) {
+      if (err.status === 409 || err.response?.status === 409) {
+        toast('You have already reviewed this movie. Switched to edit mode.', { icon: 'ℹ️' });
+        const existing = reviews.find(
+          (r) => String(r.userId) === String(user?.id)
+        );
+        if (existing) {
+          setEditingReview(existing);
+        } else {
+          await loadReviews(1);
+        }
+      } else {
+        toast.error(err.message || 'Failed to submit review');
+      }
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
-  const handleEditReview = (reviewId, updatedData) => {
-    setReviews(
-      reviews.map((r) => (r.id === reviewId ? { ...r, ...updatedData } : r))
-    );
-    toast.success('Review updated!');
+  const handleEditReview = async (reviewId, updatedData) => {
+    try {
+      await reviewService.updateReview(reviewId, updatedData);
+      toast.success('Review updated!');
+      loadReviews(reviewsPage);
+    } catch (err) {
+      toast.error(err.message || 'Failed to update review');
+    }
   };
 
-  const handleDeleteReview = (reviewId) => {
-    setReviews(reviews.filter((r) => r.id !== reviewId));
-    toast.success('Review deleted.');
+  const handleDeleteReview = async (reviewId) => {
+    try {
+      await reviewService.deleteReview(reviewId);
+      toast.success('Review deleted.');
+      if (editingReview?.id === reviewId || editingReview?._id === reviewId) {
+        setEditingReview(null);
+      }
+      loadReviews(reviewsPage);
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete review');
+    }
   };
 
   if (loading) {
@@ -146,8 +207,8 @@ export default function MovieDetailsPage() {
     );
   }
 
-  const inWatchlist = isWatchlisted(movie.id);
-  const inFavorites = isFavorite(movie.id);
+  const inWatchlist = isWatchlisted(movie.externalMovieId || movie.externalId || movie.id || movie._id);
+  const inFavorites = isFavorite(movie.externalMovieId || movie.externalId || movie.id || movie._id);
   const gradientClass = getMovieGradient(movie.title, movie.genres[0]);
 
   return (
@@ -345,12 +406,24 @@ export default function MovieDetailsPage() {
 
             {/* Reviews Section */}
             <div className="p-6 sm:p-8 rounded-3xl bg-[#11141e]/90 border border-slate-800 space-y-8">
-              <ReviewForm onSubmit={handleAddReview} />
+              <ReviewForm
+                onSubmit={handleAddReview}
+                isSubmitting={isSubmittingReview}
+                initialRating={editingReview ? editingReview.rating : 5}
+                initialComment={editingReview ? editingReview.comment : ''}
+                isEditMode={Boolean(editingReview)}
+                onCancel={() => setEditingReview(null)}
+              />
               <ReviewList
                 reviews={reviews}
-                currentUserId={user?.id || 'guest_user'}
+                summary={reviewSummary}
+                currentUserId={user?.id}
+                page={reviewsPage}
+                totalPages={reviewsTotalPages}
+                onPageChange={(p) => loadReviews(p)}
                 onEditReview={handleEditReview}
                 onDeleteReview={handleDeleteReview}
+                loading={reviewsLoading}
               />
             </div>
           </div>

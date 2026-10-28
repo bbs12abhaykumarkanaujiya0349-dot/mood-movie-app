@@ -11,7 +11,7 @@ const classifyMoodExternal = async (text) => {
     return null; // Signals fallback to local classifier
   }
 
-  const model = process.env.AI_MODEL || 'gemini-2.5-flash';
+  const model = process.env.AI_MODEL || 'gemini-3.8-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
 
   const prompt = `You are a sentiment and mood classification AI for a movie recommendation system.

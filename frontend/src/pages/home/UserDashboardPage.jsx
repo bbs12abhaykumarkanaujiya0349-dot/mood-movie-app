@@ -18,15 +18,28 @@ import MovieCard from '../../components/movie/MovieCard';
 import useAuth from '../../hooks/useAuth';
 import { useLibrary } from '../../context/LibraryContext';
 import { MOODS } from '../../constants/moods';
-import { MOCK_MOVIES } from '../../data/movies';
+import movieService from '../../services/movieService';
 
 export default function UserDashboardPage() {
   const { user } = useAuth();
-  const { watchlist, favorites } = useLibrary();
+  const { watchlist } = useLibrary();
   const navigate = useNavigate();
 
-  const watchlistMovies = MOCK_MOVIES.filter((m) => watchlist.includes(m.id));
-  const trendingMovies = MOCK_MOVIES.slice(0, 8);
+  const [trendingMovies, setTrendingMovies] = React.useState([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    movieService.getTrending().then((res) => {
+      if (isMounted && res.results) {
+        setTrendingMovies(res.results.slice(0, 8));
+      }
+    }).catch((err) => {
+      console.warn('[UserDashboard] Failed to fetch trending:', err.message);
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  const watchlistMovies = watchlist || [];
 
   return (
     <div className="py-10 sm:py-14 text-left space-y-14 pb-24">

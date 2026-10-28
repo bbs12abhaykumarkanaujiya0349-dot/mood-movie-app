@@ -20,7 +20,6 @@ import Spinner from '../components/common/Spinner';
 import MoodCard from '../components/mood/MoodCard';
 import { MOODS } from '../constants/moods';
 import moodService from '../services/moodService';
-import userService from '../services/userService';
 import toast from 'react-hot-toast';
 
 const EXAMPLE_PROMPTS = [
@@ -68,14 +67,6 @@ export default function MoodSelectPage() {
     try {
       const result = await moodService.analyzeMoodText(promptText);
       setAnalysisResult(result);
-
-      // Record in history mock
-      await userService.addHistory({
-        inputText: promptText,
-        detectedMood: result.label,
-        confidence: result.confidence,
-        count: 12
-      });
 
       toast.success(`Detected Mood: ${result.label} (${Math.round(result.confidence * 100)}% match)`);
     } catch (err) {

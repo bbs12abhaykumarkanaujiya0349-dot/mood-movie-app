@@ -7,6 +7,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "node --test src/**/*.test.js",
+    "test:security": "node src/test_security_audit.js",
+    "test:all": "npm test && node src/test_security_audit.js && node src/test_b1.js && node src/test_b2.js && node src/test_omdb.js && node src/test_b3.js && node src/test_b4.js",
+    "check:indexes": "node src/scripts/checkIndexes.js",
     "seed": "node src/seed/seed.js",
     "seed:reset": "node src/seed/seed.js --reset"
   },

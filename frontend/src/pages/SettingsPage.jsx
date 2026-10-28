@@ -9,13 +9,14 @@ import {
   Globe,
   Trash2,
   Shield,
-  Save
+  Save,
+  X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Container from '../components/common/Container';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
-import ConfirmDialog from '../components/common/ConfirmDialog';
 import useAuth from '../hooks/useAuth';
 import userService from '../services/userService';
 import toast from 'react-hot-toast';
@@ -41,7 +42,7 @@ export default function SettingsPage() {
   const navigate = useNavigate();
 
   // Section 1: Account info
-  const [name, setName] = useState(user?.name || 'Explorer');
+  const [name, setName] = useState(user?.name || '');
   const [isSavingName, setIsSavingName] = useState(false);
 
   // Section 2: Password
@@ -51,12 +52,13 @@ export default function SettingsPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Section 3: Preferences
-  const [selectedGenres, setSelectedGenres] = useState(['Sci-Fi', 'Comedy', 'Drama']);
-  const [language, setLanguage] = useState('English');
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [language, setLanguage] = useState('en');
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
-  // Section 4: Danger zone
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  // Section 4: Danger zone (Delete Account with password verification)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
@@ -64,8 +66,12 @@ export default function SettingsPage() {
     const loadPrefs = async () => {
       try {
         const prefs = await userService.getPreferences();
-        if (prefs.favoriteGenres) setSelectedGenres(prefs.favoriteGenres);
-        if (prefs.preferredLanguage) setLanguage(prefs.preferredLanguage);
+        if (Array.isArray(prefs.favoriteGenres)) {
+          setSelectedGenres(prefs.favoriteGenres);
+        }
+        if (prefs.language) {
+          setLanguage(prefs.language);
+        }
       } catch (err) {
         console.error('Failed to load preferences:', err);
       }
@@ -83,8 +89,8 @@ export default function SettingsPage() {
     try {
       await userService.updateProfile({ name: name.trim() });
       toast.success('Account name updated!');
-    } catch {
-      toast.error('Failed to update name');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update name');
     } finally {
       setIsSavingName(false);
     }
@@ -111,9 +117,9 @@ export default function SettingsPage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      toast.success('Password changed successfully!');
+      toast.success('Password updated successfully!');
     } catch (err) {
-      toast.error(err.message || 'Failed to change password');
+      toast.error(err.message || 'Failed to update password');
     } finally {
       setIsChangingPassword(false);
     }
@@ -132,28 +138,35 @@ export default function SettingsPage() {
     try {
       await userService.updatePreferences({
         favoriteGenres: selectedGenres,
-        preferredLanguage: language
+        language: language.toLowerCase()
       });
       toast.success('Movie preferences saved!');
-    } catch {
-      toast.error('Failed to save preferences');
+    } catch (err) {
+      toast.error(err.message || 'Failed to save preferences');
     } finally {
       setIsSavingPreferences(false);
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    if (!deletePassword) {
+      toast.error('Please enter your password to confirm account deletion.');
+      return;
+    }
+
     setIsDeletingAccount(true);
     try {
-      await userService.deleteAccount();
+      await userService.deleteAccount(deletePassword);
       await logout();
       toast.success('Your account has been deleted');
       navigate('/');
-    } catch {
-      toast.error('Failed to delete account');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete account');
     } finally {
       setIsDeletingAccount(false);
-      setIsDeleteConfirmOpen(false);
+      setIsDeleteModalOpen(false);
+      setDeletePassword('');
     }
   };
 
@@ -196,7 +209,7 @@ export default function SettingsPage() {
               type="email"
               value={user?.email || ''}
               disabled
-              helperText="Email cannot be modified in mock mode"
+              helperText="Email address cannot be changed"
             />
           </div>
 
@@ -213,7 +226,7 @@ export default function SettingsPage() {
           </div>
         </form>
 
-        {/* Section 2: Change Password */}
+        {/* Section 2: Change Password (PATCH /auth/password) */}
         <form
           onSubmit={handleChangePassword}
           className="p-6 sm:p-8 rounded-3xl bg-[#11141e]/90 border border-slate-800 shadow-xl space-y-4"
@@ -236,7 +249,7 @@ export default function SettingsPage() {
               <Input
                 label="New Password"
                 type="password"
-                placeholder="Min 8 characters"
+                placeholder="Min 8 chars with mix of cases & numbers"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
@@ -263,7 +276,7 @@ export default function SettingsPage() {
           </div>
         </form>
 
-        {/* Section 3: Genre & Language Preferences */}
+        {/* Section 3: Genre & Language Preferences (PATCH /users/me/preferences) */}
         <div className="p-6 sm:p-8 rounded-3xl bg-[#11141e]/90 border border-slate-800 shadow-xl space-y-5">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Sliders className="w-5 h-5 text-purple-400" />
@@ -303,13 +316,13 @@ export default function SettingsPage() {
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="w-full sm:w-60 bg-[#0a0b10] text-slate-100 text-sm rounded-xl border border-slate-800 p-2.5 focus:outline-none focus:ring-1 focus:ring-rose-500"
+              className="w-full sm:w-60 bg-[#0a0b10] text-slate-100 text-sm rounded-xl border border-slate-800 p-2.5 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
             >
-              <option value="English">English</option>
-              <option value="Japanese">Japanese</option>
-              <option value="Hindi">Hindi</option>
-              <option value="French">French</option>
-              <option value="Spanish">Spanish</option>
+              <option value="en">English (en)</option>
+              <option value="hi">Hindi (hi)</option>
+              <option value="ja">Japanese (ja)</option>
+              <option value="fr">French (fr)</option>
+              <option value="es">Spanish (es)</option>
             </select>
           </div>
 
@@ -326,7 +339,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Section 4: Danger Zone */}
+        {/* Section 4: Danger Zone (DELETE /users/me with password) */}
         <div className="p-6 sm:p-8 rounded-3xl bg-red-950/15 border border-red-500/25 shadow-xl space-y-4">
           <h3 className="text-base font-bold text-red-300 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -334,30 +347,104 @@ export default function SettingsPage() {
           </h3>
 
           <p className="text-xs text-slate-400 leading-relaxed">
-            Deleting your account will purge your saved watchlists, favorites, and mood history from local memory.
+            Permanently delete your account. This action will cascade and remove all your written reviews, mood history, and saved libraries from the system.
           </p>
 
           <Button
             variant="danger"
             size="sm"
-            onClick={() => setIsDeleteConfirmOpen(true)}
+            onClick={() => setIsDeleteModalOpen(true)}
             leftIcon={Trash2}
           >
             Delete Account
           </Button>
         </div>
 
-        {/* Confirm Delete Account Dialog */}
-        <ConfirmDialog
-          isOpen={isDeleteConfirmOpen}
-          title="Delete Account Confirmation"
-          message="Are you certain you wish to permanently delete your account and all associated watchlist history? This cannot be undone."
-          confirmText="Yes, Delete My Account"
-          confirmVariant="danger"
-          isLoading={isDeletingAccount}
-          onConfirm={handleDeleteAccount}
-          onClose={() => setIsDeleteConfirmOpen(false)}
-        />
+        {/* Delete Account Modal with Password Confirmation */}
+        <AnimatePresence>
+          {isDeleteModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => {
+                  if (!isDeletingAccount) {
+                    setIsDeleteModalOpen(false);
+                    setDeletePassword('');
+                  }
+                }}
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+              />
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                className="relative w-full max-w-md rounded-3xl bg-[#0e111a] border border-red-500/30 p-6 sm:p-8 shadow-2xl z-10 text-left space-y-5"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white">Confirm Account Deletion</h3>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!isDeletingAccount) {
+                        setIsDeleteModalOpen(false);
+                        setDeletePassword('');
+                      }
+                    }}
+                    className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  This action is permanent and irreversible. To confirm deletion of your account and all associated reviews and history, enter your current password below:
+                </p>
+
+                <form onSubmit={handleDeleteAccount} className="space-y-4">
+                  <Input
+                    label="Current Password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    required
+                  />
+
+                  <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsDeleteModalOpen(false);
+                        setDeletePassword('');
+                      }}
+                      disabled={isDeletingAccount}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="danger"
+                      size="sm"
+                      isLoading={isDeletingAccount}
+                      leftIcon={Trash2}
+                    >
+                      Permanently Delete
+                    </Button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </Container>
     </div>
   );

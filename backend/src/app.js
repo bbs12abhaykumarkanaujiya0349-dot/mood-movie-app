@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 
 const AppError = require('./utils/AppError');
 const errorHandler = require('./middleware/errorHandler');
+const mongoSanitize = require('./middleware/mongoSanitize');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const movieRoutes = require('./routes/movieRoutes');
@@ -23,11 +24,24 @@ const app = express();
 // 1. Security HTTP headers
 app.use(helmet());
 
-// 2. CORS configuration (restricted strictly to CLIENT_URL)
-const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+// 2. CORS configuration (supports single origin or comma-separated list of origins via CLIENT_URL)
+const rawClientUrls = process.env.CLIENT_URL || 'http://localhost:5173';
+const allowedOrigins = rawClientUrls
+  .split(',')
+  .map((url) => url.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: clientUrl,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or Postman)
+      if (!origin) return callback(null, true);
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+      if (allowedOrigins.includes(normalizedOrigin) || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -36,8 +50,12 @@ app.use(
 
 // 3. Request body parser (max 10kb limit to prevent payload attacks)
 app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-// 4. Development logging with morgan
+// 4. NoSQL Injection protection (sanitize req.body, req.query, req.params)
+app.use(mongoSanitize);
+
+// 5. Development logging with morgan (no sensitive headers or bodies logged)
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }

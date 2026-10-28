@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   User,
   Mail,
-  Shield,
   Bookmark,
   Heart,
   MessageSquare,
@@ -13,7 +12,6 @@ import {
   Check,
   X,
   History,
-  Film,
   Star
 } from 'lucide-react';
 import Container from '../../components/common/Container';
@@ -21,23 +19,30 @@ import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import Skeleton from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
+import ErrorState from '../../components/common/ErrorState';
 import MovieCard from '../../components/movie/MovieCard';
 import useAuth from '../../hooks/useAuth';
-import { useLibrary } from '../../context/LibraryContext';
 import userService from '../../services/userService';
-import { MOCK_MOVIES } from '../../data/movies';
 import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const { watchlist, favorites } = useLibrary();
 
   const [activeTab, setActiveTab] = useState('history'); // 'history' | 'reviews' | 'recommended'
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [stats, setStats] = useState({
+    watchlistCount: 0,
+    favoritesCount: 0,
+    reviewCount: 0,
+    moodCheckCount: 0,
+    memberSince: null
+  });
   const [moodHistory, setMoodHistory] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
 
-  // Edit profile state
+  // Edit profile name state
   const [isEditingName, setIsEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(user?.name || 'Explorer');
   const [nameInput, setNameInput] = useState(user?.name || 'Explorer');
@@ -50,22 +55,27 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  const loadProfileData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [statsData, historyData, reviewsData] = await Promise.all([
+        userService.getMyStats(),
+        userService.getHistory({ limit: 10 }),
+        userService.getUserReviews()
+      ]);
+      setStats(statsData);
+      setMoodHistory(historyData.history || []);
+      setMyReviews(reviewsData);
+    } catch (err) {
+      console.error('Failed to load profile details:', err);
+      setError(err.message || 'Failed to load profile details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadProfileData = async () => {
-      setLoading(true);
-      try {
-        const [historyData, reviewsData] = await Promise.all([
-          userService.getHistory(),
-          userService.getUserReviews()
-        ]);
-        setMoodHistory(historyData);
-        setMyReviews(reviewsData);
-      } catch (err) {
-        console.error('Failed to load profile details:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadProfileData();
   }, []);
 
@@ -76,19 +86,38 @@ export default function ProfilePage() {
     }
     setIsSavingName(true);
     try {
-      await userService.updateProfile({ name: nameInput.trim() });
-      setDisplayName(nameInput.trim());
+      const updated = await userService.updateProfile({ name: nameInput.trim() });
+      setDisplayName(updated.name);
       setIsEditingName(false);
       toast.success('Profile name updated!');
-    } catch {
-      toast.error('Failed to update name');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update name');
     } finally {
       setIsSavingName(false);
     }
   };
 
   const userInitial = displayName ? displayName[0].toUpperCase() : 'U';
-  const recentlyRecommended = MOCK_MOVIES.slice(0, 4);
+
+  // Extract deduplicated movies from recommendation history
+  const recentlyRecommended = [];
+  const seenIds = new Set();
+  for (const h of moodHistory) {
+    for (const m of (h.recommendationIds || [])) {
+      const mId = m.id || m._id || m.externalMovieId;
+      if (mId && !seenIds.has(mId)) {
+        seenIds.add(mId);
+        recentlyRecommended.push(m);
+      }
+    }
+  }
+
+  const memberSinceFormatted = stats.memberSince
+    ? new Date(stats.memberSince).toLocaleDateString(undefined, {
+        month: 'long',
+        year: 'numeric'
+      })
+    : 'Recently';
 
   return (
     <div className="py-12 sm:py-16 text-left pb-24 space-y-10">
@@ -125,7 +154,7 @@ export default function ProfilePage() {
                         setNameInput(displayName);
                         setIsEditingName(false);
                       }}
-                      className="p-2 text-slate-400 hover:text-white"
+                      className="p-2 text-slate-400 hover:text-white cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -138,7 +167,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setIsEditingName(true)}
-                      className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                      className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
                       title="Edit Display Name"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -157,7 +186,7 @@ export default function ProfilePage() {
                   </Badge>
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3 text-slate-500" />
-                    <span>Member since October 2025</span>
+                    <span>Member since {memberSinceFormatted}</span>
                   </span>
                 </div>
               </div>
@@ -173,14 +202,14 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 4 Stat Cards */}
+        {/* 4 Real Stat Cards from GET /api/users/me/stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="p-5 rounded-2xl bg-[#11141e]/90 border border-slate-800 shadow-lg space-y-1">
             <div className="flex items-center justify-between text-slate-400 text-xs">
               <span>Watchlist</span>
               <Bookmark className="w-4 h-4 text-rose-400" />
             </div>
-            <p className="text-2xl font-bold text-white">{watchlist.length}</p>
+            <p className="text-2xl font-bold text-white">{stats.watchlistCount}</p>
             <span className="text-[11px] text-slate-500 block">Saved movies</span>
           </div>
 
@@ -189,7 +218,7 @@ export default function ProfilePage() {
               <span>Favorites</span>
               <Heart className="w-4 h-4 text-rose-400" />
             </div>
-            <p className="text-2xl font-bold text-white">{favorites.length}</p>
+            <p className="text-2xl font-bold text-white">{stats.favoritesCount}</p>
             <span className="text-[11px] text-slate-500 block">All-time favorites</span>
           </div>
 
@@ -198,7 +227,7 @@ export default function ProfilePage() {
               <span>Reviews</span>
               <MessageSquare className="w-4 h-4 text-amber-400" />
             </div>
-            <p className="text-2xl font-bold text-white">{myReviews.length}</p>
+            <p className="text-2xl font-bold text-white">{stats.reviewCount}</p>
             <span className="text-[11px] text-slate-500 block">Critiques posted</span>
           </div>
 
@@ -207,7 +236,7 @@ export default function ProfilePage() {
               <span>Mood Checks</span>
               <Sparkles className="w-4 h-4 text-purple-400" />
             </div>
-            <p className="text-2xl font-bold text-white">{moodHistory.length}</p>
+            <p className="text-2xl font-bold text-white">{stats.moodCheckCount}</p>
             <span className="text-[11px] text-slate-500 block">Total emotional queries</span>
           </div>
         </div>
@@ -247,7 +276,7 @@ export default function ProfilePage() {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Recently Recommended
+            Recently Recommended ({recentlyRecommended.length})
           </button>
         </div>
 
@@ -256,6 +285,12 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <Skeleton count={3} height="80px" className="rounded-2xl" />
           </div>
+        ) : error ? (
+          <ErrorState
+            title="Failed to load profile details"
+            description={error}
+            onRetry={loadProfileData}
+          />
         ) : (
           <>
             {/* Tab: Mood History */}
@@ -264,7 +299,7 @@ export default function ProfilePage() {
                 {moodHistory.length > 0 ? (
                   moodHistory.slice(0, 5).map((item) => (
                     <div
-                      key={item.id}
+                      key={item.id || item._id}
                       className="p-5 rounded-2xl bg-[#11141e] border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
                       <div className="space-y-1">
@@ -281,7 +316,7 @@ export default function ProfilePage() {
                         </p>
                       </div>
 
-                      <Link to={`/recommendations?mood=${item.moodId || 'happy'}`}>
+                      <Link to={`/recommendations?mood=${encodeURIComponent((item.detectedMood || 'happy').toLowerCase())}`}>
                         <Button variant="ghost" size="sm">
                           View Matches →
                         </Button>
@@ -306,20 +341,35 @@ export default function ProfilePage() {
                 {myReviews.length > 0 ? (
                   myReviews.map((r) => (
                     <div
-                      key={r.id}
+                      key={r.id || r._id}
                       className="p-5 rounded-2xl bg-[#11141e] border border-slate-800 space-y-2"
                     >
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-bold text-white">{r.movieTitle}</h4>
                         <div className="flex items-center gap-1 text-amber-400 text-xs font-bold">
                           <Star className="w-3.5 h-3.5 fill-amber-400" />
-                          <span>{r.rating}/10</span>
+                          <span>{r.rating}/5</span>
                         </div>
                       </div>
                       <p className="text-xs text-slate-300">"{r.comment}"</p>
-                      <span className="text-[10px] text-slate-500 block">
-                        Reviewed on {new Date(r.createdAt).toLocaleDateString()}
-                      </span>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1">
+                        <span>Reviewed on {new Date(r.createdAt).toLocaleDateString()}</span>
+                        {r.sentiment && (
+                          <Badge
+                            variant={
+                              r.sentiment === 'positive'
+                                ? 'emerald'
+                                : r.sentiment === 'negative'
+                                ? 'danger'
+                                : 'amber'
+                            }
+                            size="sm"
+                            className="capitalize"
+                          >
+                            {r.sentiment}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -334,13 +384,23 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Tab: Recently Recommended */}
+            {/* Tab: Recently Recommended from History */}
             {activeTab === 'recommended' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {recentlyRecommended.map((movie) => (
-                  <MovieCard key={movie.id} movie={movie} />
-                ))}
-              </div>
+              recentlyRecommended.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {recentlyRecommended.slice(0, 8).map((movie) => (
+                    <MovieCard key={movie.id || movie._id} movie={movie} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Sparkles}
+                  title="No recommended movies yet"
+                  description="Complete a mood check to get personalized film recommendations."
+                  actionLabel="Discover by Mood"
+                  onAction={() => window.location.assign('/mood')}
+                />
+              )
             )}
           </>
         )}

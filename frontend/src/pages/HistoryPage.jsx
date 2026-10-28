@@ -8,33 +8,50 @@ import {
   Brain,
   RotateCcw,
   Sparkles,
-  Filter
+  Filter,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import Container from '../components/common/Container';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
 import Skeleton from '../components/common/Skeleton';
 import EmptyState from '../components/common/EmptyState';
+import ErrorState from '../components/common/ErrorState';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import userService from '../services/userService';
 import { MOODS } from '../constants/moods';
-import { MOCK_MOVIES } from '../data/movies';
 import toast from 'react-hot-toast';
 
 export default function HistoryPage() {
   const navigate = useNavigate();
   const [historyList, setHistoryList] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [selectedMoodFilter, setSelectedMoodFilter] = useState('All');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
-  const loadHistory = async () => {
+  const loadHistory = async (targetPage = page, targetMood = selectedMoodFilter) => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await userService.getHistory();
-      setHistoryList(data);
+      const data = await userService.getHistory({
+        mood: targetMood === 'All' ? undefined : targetMood,
+        page: targetPage,
+        limit: 8
+      });
+      setHistoryList(data.history || []);
+      setTotal(data.total || 0);
+      setPage(data.page || 1);
+      setTotalPages(data.totalPages || 1);
     } catch (err) {
+      setError(err.message || 'Failed to load mood history');
       toast.error('Failed to load mood history');
     } finally {
       setLoading(false);
@@ -42,27 +59,52 @@ export default function HistoryPage() {
   };
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    loadHistory(page, selectedMoodFilter);
+  }, [page, selectedMoodFilter]);
+
+  const handleFilterChange = (moodLabel) => {
+    setSelectedMoodFilter(moodLabel);
+    setPage(1);
+  };
+
+  const handleDeleteItem = async (itemId) => {
+    setDeletingId(itemId);
+    try {
+      await userService.deleteHistoryItem(itemId);
+      toast.success('History entry deleted');
+      loadHistory(page, selectedMoodFilter);
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete history entry');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleClearHistory = async () => {
     setIsClearing(true);
     try {
       await userService.clearHistory();
       setHistoryList([]);
+      setTotal(0);
+      setPage(1);
+      setTotalPages(1);
       setIsConfirmOpen(false);
       toast.success('Mood history cleared successfully');
-    } catch {
-      toast.error('Failed to clear history');
+    } catch (err) {
+      toast.error(err.message || 'Failed to clear history');
     } finally {
       setIsClearing(false);
     }
   };
 
-  const filteredHistory = historyList.filter((item) => {
-    if (selectedMoodFilter === 'All') return true;
-    return item.detectedMood?.toLowerCase() === selectedMoodFilter.toLowerCase();
-  });
+  const handleRecommendAgain = (item) => {
+    if (item.inputText && item.inputText !== 'Selected manually') {
+      navigate(`/recommendations?query=${encodeURIComponent(item.inputText)}`);
+    } else {
+      const moodSlug = (item.detectedMood || 'happy').toLowerCase();
+      navigate(`/recommendations?mood=${encodeURIComponent(moodSlug)}`);
+    }
+  };
 
   return (
     <div className="py-12 sm:py-16 text-left pb-24 space-y-8">
@@ -81,7 +123,7 @@ export default function HistoryPage() {
             </p>
           </div>
 
-          {historyList.length > 0 && (
+          {total > 0 && (
             <Button
               variant="danger"
               size="sm"
@@ -94,66 +136,68 @@ export default function HistoryPage() {
         </div>
 
         {/* Filter Bar */}
-        {historyList.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-            <span className="text-xs text-slate-400 font-semibold mr-2 flex items-center gap-1 shrink-0">
-              <Filter className="w-3.5 h-3.5" /> Filter by Mood:
-            </span>
-            {['All', ...MOODS.map((m) => m.label)].map((moodLabel) => (
-              <button
-                key={moodLabel}
-                type="button"
-                onClick={() => setSelectedMoodFilter(moodLabel)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-                  selectedMoodFilter === moodLabel
-                    ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/20'
-                    : 'bg-[#121520] text-slate-400 hover:text-white border-slate-800'
-                }`}
-              >
-                {moodLabel}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+          <span className="text-xs text-slate-400 font-semibold mr-2 flex items-center gap-1 shrink-0">
+            <Filter className="w-3.5 h-3.5" /> Filter by Mood:
+          </span>
+          {['All', ...MOODS.map((m) => m.label)].map((moodLabel) => (
+            <button
+              key={moodLabel}
+              type="button"
+              onClick={() => handleFilterChange(moodLabel)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer ${
+                selectedMoodFilter === moodLabel
+                  ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/20'
+                  : 'bg-[#121520] text-slate-400 hover:text-white border-slate-800'
+              }`}
+            >
+              {moodLabel}
+            </button>
+          ))}
+        </div>
 
         {/* Timeline / List */}
         {loading ? (
           <div className="space-y-4">
             <Skeleton count={4} height="120px" className="rounded-2xl" />
           </div>
-        ) : filteredHistory.length === 0 ? (
+        ) : error ? (
+          <ErrorState
+            title="Failed to load History"
+            description={error}
+            onRetry={() => loadHistory(page, selectedMoodFilter)}
+          />
+        ) : historyList.length === 0 ? (
           <EmptyState
             icon={Brain}
-            title={historyList.length === 0 ? 'No Mood History Recorded' : 'No entries for this mood'}
+            title={selectedMoodFilter === 'All' ? 'No Mood History Recorded' : `No ${selectedMoodFilter} Entries`}
             description={
-              historyList.length === 0
+              selectedMoodFilter === 'All'
                 ? 'Use our Natural Language Mood Matcher to analyze your feelings and record your recommendation journeys.'
                 : 'Try selecting a different mood filter or running a new mood assessment.'
             }
-            actionLabel={historyList.length === 0 ? 'Try Mood Matcher' : 'Reset Filter'}
+            actionLabel={selectedMoodFilter === 'All' ? 'Try Mood Matcher' : 'Reset Filter'}
             onAction={() =>
-              historyList.length === 0
-                ? window.location.assign('/mood')
-                : setSelectedMoodFilter('All')
+              selectedMoodFilter === 'All'
+                ? navigate('/mood')
+                : handleFilterChange('All')
             }
           />
         ) : (
           <div className="space-y-4">
-            {filteredHistory.map((item) => {
+            {historyList.map((item) => {
+              const itemId = item.id || item._id;
               const moodObj = MOODS.find(
                 (m) =>
                   m.id === item.moodId ||
                   m.label.toLowerCase() === item.detectedMood?.toLowerCase()
               ) || MOODS[0];
 
-              const moviePreviews = (item.recommendedMovieIds || ['m1', 'm2', 'm6'])
-                .map((id) => MOCK_MOVIES.find((m) => m.id === id))
-                .filter(Boolean)
-                .slice(0, 3);
+              const moviePreviews = (item.recommendationIds || []).slice(0, 4);
 
               return (
                 <div
-                  key={item.id}
+                  key={itemId}
                   className="p-6 rounded-3xl bg-[#11141e]/90 border border-slate-800/90 shadow-lg hover:border-slate-700/80 transition-all text-left space-y-4"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -182,21 +226,29 @@ export default function HistoryPage() {
                       </div>
                     </div>
 
-                    {/* Recommend Again button */}
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() =>
-                        navigate(
-                          `/recommendations?mood=${moodObj.id}&query=${encodeURIComponent(
-                            item.inputText
-                          )}`
-                        )
-                      }
-                      leftIcon={RotateCcw}
-                    >
-                      Recommend Again
-                    </Button>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      {/* Recommend Again button */}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleRecommendAgain(item)}
+                        leftIcon={RotateCcw}
+                      >
+                        Recommend Again
+                      </Button>
+
+                      {/* Delete single history entry */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteItem(itemId)}
+                        isLoading={deletingId === itemId}
+                        className="text-red-400 hover:text-red-300"
+                        title="Delete this history entry"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Prompt Text & Confidence bar */}
@@ -205,7 +257,7 @@ export default function HistoryPage() {
                       "{item.inputText}"
                     </p>
 
-                    {item.confidence && (
+                    {item.confidence !== undefined && (
                       <div className="flex items-center gap-3 text-xs text-slate-400">
                         <span>NLP Confidence:</span>
                         <div className="w-32 h-1.5 rounded-full bg-slate-800 overflow-hidden">
@@ -228,23 +280,55 @@ export default function HistoryPage() {
                         Matched Recommendations Preview:
                       </span>
                       <div className="flex flex-wrap gap-2">
-                        {moviePreviews.map((m) => (
-                          <Link
-                            key={m.id}
-                            to={`/movie/${m.id}`}
-                            className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500/40 text-xs text-slate-300 hover:text-white transition-colors flex items-center gap-1.5"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                            <span>{m.title}</span>
-                            <span className="text-amber-400 text-[10px]">★{m.rating}</span>
-                          </Link>
-                        ))}
+                        {moviePreviews.map((m) => {
+                          const mId = m.externalMovieId || m.externalId || m.id || m._id;
+                          return (
+                            <Link
+                              key={mId}
+                              to={`/movie/${mId}`}
+                              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500/40 text-xs text-slate-300 hover:text-white transition-colors flex items-center gap-1.5"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                              <span>{m.title}</span>
+                              {m.rating && <span className="text-amber-400 text-[10px]">★{m.rating}</span>}
+                            </Link>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 border-t border-slate-800 text-xs text-slate-400">
+            <span>
+              Page {page} of {totalPages} ({total} entries total)
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                leftIcon={ChevronLeft}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                rightIcon={ChevronRight}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
 

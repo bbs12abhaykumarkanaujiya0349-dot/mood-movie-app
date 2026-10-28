@@ -38,6 +38,8 @@ const Input = forwardRef(function Input(
           ref={ref}
           id={inputId}
           type={type}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           className={`w-full bg-[#12151f] text-slate-100 placeholder-slate-500 text-sm rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/80 ${
             LeftIcon ? 'pl-10' : 'pl-3.5'
           } ${RightIcon ? 'pr-10' : 'pr-3.5'} py-2.5 ${

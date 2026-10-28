@@ -29,6 +29,7 @@ import {
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import Skeleton from '../../components/common/Skeleton';
+import ErrorState from '../../components/common/ErrorState';
 import adminService from '../../services/adminService';
 import toast from 'react-hot-toast';
 
@@ -54,13 +55,16 @@ export default function AdminAnalyticsPage() {
   const [range, setRange] = useState('7d');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchAnalytics = async (selectedRange) => {
     setLoading(true);
+    setError(null);
     try {
       const result = await adminService.getAnalytics(selectedRange);
       setData(result);
-    } catch {
+    } catch (err) {
+      setError(err.message || 'Failed to load analytics data');
       toast.error('Failed to load analytics data');
     } finally {
       setLoading(false);

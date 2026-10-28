@@ -712,9 +712,9 @@ export default function AdminMoviesPage() {
         onClose={() => setSelectedMovieForDelete(null)}
         onConfirm={handleDeleteMovie}
         title="Delete Movie from Catalog"
-        message={`Are you sure you want to remove "${selectedMovieForDelete?.title}" from the recommendation database? Users will no longer receive this title in their mood recommendations.`}
-        confirmText="Remove Title"
-        cancelText="Keep Title"
+        message={`Are you sure you want to permanently delete "${selectedMovieForDelete?.title}"? WARNING: This action will cascade and remove this movie from all user watchlists, favorites, and community reviews!`}
+        confirmText="Yes, Cascade Delete"
+        cancelText="Cancel"
         variant="danger"
         isLoading={isDeleting}
       />

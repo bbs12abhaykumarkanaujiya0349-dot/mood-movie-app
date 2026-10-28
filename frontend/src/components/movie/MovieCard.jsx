@@ -105,7 +105,8 @@ export default function MovieCard({ movie, onWatchlistToggle, isSaved: isSavedPr
                 handleToggle(movie);
               }}
               title={isSaved ? 'Remove from Watchlist' : 'Add to Watchlist'}
-              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              aria-label={isSaved ? `Remove ${title} from Watchlist` : `Add ${title} to Watchlist`}
+              className={`p-2 rounded-xl border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-rose-500 ${
                 isSaved
                   ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
                   : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'

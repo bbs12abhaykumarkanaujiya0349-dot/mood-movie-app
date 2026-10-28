@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -17,6 +17,9 @@ import {
   Zap
 } from 'lucide-react';
 import Container from '../../components/common/Container';
+import { useLibrary } from '../../context/LibraryContext';
+import useAuth from '../../hooks/useAuth';
+import { movieService } from '../../services/movieService';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import MovieCard from '../../components/movie/MovieCard';
@@ -27,17 +30,41 @@ import toast from 'react-hot-toast';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toggleWatchlist, isInWatchlist } = useLibrary();
   const [selectedMood, setSelectedMood] = useState(null);
   const [moodInput, setMoodInput] = useState('');
-  const [watchlist, setWatchlist] = useState(['m1', 'm6']);
+  const [realMovies, setRealMovies] = useState([]);
+  const [localWatchlist, setLocalWatchlist] = useState(['m1', 'm6']);
   const trendingScrollRef = useRef(null);
 
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchTrending() {
+      try {
+        const data = await movieService.getTrending();
+        if (isMounted && data && Array.isArray(data.results) && data.results.length > 0) {
+          setRealMovies(data.results);
+        }
+      } catch (err) {
+        // Fall back to local mock movies
+      }
+    }
+    fetchTrending();
+    return () => { isMounted = false; };
+  }, []);
+
   const handleWatchlistToggle = (movie) => {
-    if (watchlist.includes(movie.id)) {
-      setWatchlist(watchlist.filter((id) => id !== movie.id));
+    if (user) {
+      toggleWatchlist(movie);
+      return;
+    }
+    const id = movie.id || movie._id;
+    if (localWatchlist.includes(id)) {
+      setLocalWatchlist(localWatchlist.filter((mId) => mId !== id));
       toast.success(`Removed "${movie.title}" from watchlist`);
     } else {
-      setWatchlist([...watchlist, movie.id]);
+      setLocalWatchlist([...localWatchlist, id]);
       toast.success(`Added "${movie.title}" to watchlist`);
     }
   };
@@ -74,11 +101,12 @@ export default function LandingPage() {
 
   // Filter movies if a mood is selected
   const activeMoodObj = MOODS.find((m) => m.id === selectedMood);
+  const baseMovies = realMovies.length > 0 ? realMovies : MOCK_MOVIES;
   const displayedMovies = activeMoodObj
-    ? MOCK_MOVIES.filter((m) =>
-        m.genres.some((g) => activeMoodObj.mappedGenres.includes(g))
+    ? baseMovies.filter((m) =>
+        (m.genres || []).some((g) => activeMoodObj.mappedGenres.includes(g))
       )
-    : MOCK_MOVIES;
+    : baseMovies;
 
   return (
     <div className="w-full relative overflow-hidden space-y-24 sm:space-y-32 pb-24">
@@ -340,19 +368,25 @@ export default function LandingPage() {
             className="flex gap-6 overflow-x-auto pb-6 pt-2 no-scrollbar scroll-smooth"
             style={{ scrollSnapType: 'x mandatory' }}
           >
-            {displayedMovies.map((movie) => (
-              <div
-                key={movie.id}
-                className="w-[240px] sm:w-[270px] shrink-0"
-                style={{ scrollSnapAlign: 'start' }}
-              >
-                <MovieCard
-                  movie={movie}
-                  onWatchlistToggle={handleWatchlistToggle}
-                  isSaved={watchlist.includes(movie.id)}
-                />
-              </div>
-            ))}
+            {displayedMovies.map((movie) => {
+              const movieId = movie.id || movie._id;
+              const isSaved = user
+                ? isInWatchlist(movieId)
+                : localWatchlist.includes(movieId);
+              return (
+                <div
+                  key={movieId}
+                  className="w-[240px] sm:w-[270px] shrink-0"
+                  style={{ scrollSnapAlign: 'start' }}
+                >
+                  <MovieCard
+                    movie={movie}
+                    onWatchlistToggle={handleWatchlistToggle}
+                    isSaved={isSaved}
+                  />
+                </div>
+              );
+            })}
           </div>
         </Container>
       </section>

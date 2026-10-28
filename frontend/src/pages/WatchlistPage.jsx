@@ -1,18 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Bookmark, Film, Trash2, ArrowLeft } from 'lucide-react';
+import { Bookmark, Film } from 'lucide-react';
 import Container from '../components/common/Container';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
+import Skeleton from '../components/common/Skeleton';
 import EmptyState from '../components/common/EmptyState';
+import ErrorState from '../components/common/ErrorState';
 import MovieCard from '../components/movie/MovieCard';
 import { useLibrary } from '../context/LibraryContext';
-import { MOCK_MOVIES } from '../data/movies';
 
 export default function WatchlistPage() {
-  const { watchlist, toggleWatchlist } = useLibrary();
-
-  const savedMovies = MOCK_MOVIES.filter((m) => watchlist.includes(m.id));
+  const { watchlist, loading, error, refreshLibrary } = useLibrary();
+  const savedMovies = watchlist || [];
 
   return (
     <div className="py-12 sm:py-16 text-left pb-24">
@@ -37,10 +36,26 @@ export default function WatchlistPage() {
           </div>
         </div>
 
-        {savedMovies.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-2xl bg-[#12151f] border border-slate-800 p-4 space-y-3">
+                <Skeleton height="320px" className="rounded-xl" />
+                <Skeleton width="70%" height="20px" />
+                <Skeleton width="40%" height="16px" />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <ErrorState
+            title="Failed to load Watchlist"
+            description={error}
+            onRetry={refreshLibrary}
+          />
+        ) : savedMovies.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {savedMovies.map((movie) => (
-              <div key={movie.id} className="relative group">
+              <div key={movie.id || movie._id} className="relative group">
                 <MovieCard movie={movie} />
               </div>
             ))}

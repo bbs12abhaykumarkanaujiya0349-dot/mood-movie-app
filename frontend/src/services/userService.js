@@ -1,186 +1,214 @@
 import api from './api';
-import { MOCK_MOVIES } from '../data/movies';
-import { MOCK_REVIEWS } from '../data/reviews';
-import { MOCK_MOOD_HISTORY } from '../data/moodHistory';
-
-const delay = (ms = 350) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const getStored = (key, fallback = []) => {
-  try {
-    const val = localStorage.getItem(key);
-    return val ? JSON.parse(val) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const setStored = (key, val) => {
-  localStorage.setItem(key, JSON.stringify(val));
-};
+import { mapMovie } from '../utils/movieMapper';
 
 export const userService = {
   /**
-   * Get user watchlist
-   * MOCK: replace with real API in integration step -> return (await api.get('/watchlist')).data;
+   * Get authenticated user's watchlist
+   * GET /api/watchlist
    */
   async getWatchlist() {
-    await delay(300);
-    const ids = getStored('moodie_watchlist', ['m1', 'm3', 'm6']);
-    return MOCK_MOVIES.filter((m) => ids.includes(m.id));
-  },
-
-  async addToWatchlist(movieId) {
-    await delay(200);
-    const ids = getStored('moodie_watchlist', ['m1', 'm3', 'm6']);
-    if (!ids.includes(movieId)) {
-      ids.push(movieId);
-      setStored('moodie_watchlist', ids);
-    }
-    return { success: true, watchlist: ids };
-  },
-
-  async removeFromWatchlist(movieId) {
-    await delay(200);
-    let ids = getStored('moodie_watchlist', ['m1', 'm3', 'm6']);
-    ids = ids.filter((id) => id !== movieId);
-    setStored('moodie_watchlist', ids);
-    return { success: true, watchlist: ids };
+    const response = await api.get('/watchlist');
+    const items = response.data.watchlist || [];
+    return items.map(mapMovie);
   },
 
   /**
-   * Get user favorites
-   * MOCK: replace with real API in integration step -> return (await api.get('/favorites')).data;
+   * Add movie to watchlist
+   * POST /api/watchlist
+   */
+  async addToWatchlist(movieId) {
+    const id = typeof movieId === 'object' ? (movieId.externalMovieId || movieId.id || movieId._id) : movieId;
+    const response = await api.post('/watchlist', { movieId: id });
+    return response.data;
+  },
+
+  /**
+   * Remove movie from watchlist
+   * DELETE /api/watchlist/:id
+   */
+  async removeFromWatchlist(movieId) {
+    const id = typeof movieId === 'object' ? (movieId.externalMovieId || movieId.id || movieId._id) : movieId;
+    const response = await api.delete(`/watchlist/${encodeURIComponent(id)}`);
+    return response.data;
+  },
+
+  /**
+   * Get authenticated user's favorites
+   * GET /api/favorites
    */
   async getFavorites() {
-    await delay(300);
-    const ids = getStored('moodie_favorites', ['m9', 'm21']);
-    return MOCK_MOVIES.filter((m) => ids.includes(m.id));
+    const response = await api.get('/favorites');
+    const items = response.data.favorites || [];
+    return items.map(mapMovie);
   },
 
+  /**
+   * Add movie to favorites
+   * POST /api/favorites
+   */
   async addToFavorites(movieId) {
-    await delay(200);
-    const ids = getStored('moodie_favorites', ['m9', 'm21']);
-    if (!ids.includes(movieId)) {
-      ids.push(movieId);
-      setStored('moodie_favorites', ids);
-    }
-    return { success: true, favorites: ids };
+    const id = typeof movieId === 'object' ? (movieId.externalMovieId || movieId.id || movieId._id) : movieId;
+    const response = await api.post('/favorites', { movieId: id });
+    return response.data;
   },
 
+  /**
+   * Remove movie from favorites
+   * DELETE /api/favorites/:id
+   */
   async removeFromFavorites(movieId) {
-    await delay(200);
-    let ids = getStored('moodie_favorites', ['m9', 'm21']);
-    ids = ids.filter((id) => id !== movieId);
-    setStored('moodie_favorites', ids);
-    return { success: true, favorites: ids };
+    const id = typeof movieId === 'object' ? (movieId.externalMovieId || movieId.id || movieId._id) : movieId;
+    const response = await api.delete(`/favorites/${encodeURIComponent(id)}`);
+    return response.data;
   },
 
   /**
-   * Get recommendation query history
-   * MOCK: replace with real API in integration step -> return (await api.get('/history')).data;
+   * Get recommendation query history with optional mood filter and pagination
+   * GET /api/history
    */
-  async getHistory() {
-    await delay(300);
-    return getStored('moodie_history', MOCK_MOOD_HISTORY);
-  },
+  async getHistory(params = {}) {
+    const queryParams = {};
+    if (params.mood && params.mood !== 'All') {
+      queryParams.mood = params.mood;
+    }
+    if (params.page) {
+      queryParams.page = Number(params.page);
+    }
+    if (params.limit) {
+      queryParams.limit = Number(params.limit);
+    }
 
-  /**
-   * Add entry to mood history
-   * MOCK: replace with real API in integration step -> return (await api.post('/history', entry)).data;
-   */
-  async addHistory(entry) {
-    await delay(150);
-    const history = getStored('moodie_history', MOCK_MOOD_HISTORY);
-    const newEntry = {
-      id: `h_${Date.now()}`,
-      ...entry,
-      createdAt: new Date().toISOString()
+    const response = await api.get('/history', { params: queryParams });
+    const data = response.data;
+
+    return {
+      history: (data.history || []).map((h) => ({
+        id: h._id,
+        _id: h._id,
+        inputText: h.inputText,
+        detectedMood: h.detectedMood,
+        confidence: h.confidence,
+        recommendationIds: (h.recommendationIds || []).map(mapMovie),
+        createdAt: h.createdAt
+      })),
+      total: data.totalResults ?? (data.history || []).length,
+      page: data.page ?? 1,
+      totalPages: data.totalPages ?? 1
     };
-    history.unshift(newEntry);
-    setStored('moodie_history', history);
-    return newEntry;
   },
 
   /**
-   * Clear all recommendation history
-   * MOCK: replace with real API in integration step -> return (await api.delete('/history')).data;
+   * Delete single history entry
+   * DELETE /api/history/:id
+   */
+  async deleteHistoryItem(id) {
+    const response = await api.delete(`/history/${encodeURIComponent(id)}`);
+    return response.data;
+  },
+
+  /**
+   * Clear all recommendation history for authenticated user
+   * DELETE /api/history
    */
   async clearHistory() {
-    await delay(300);
-    setStored('moodie_history', []);
-    return { success: true };
+    const response = await api.delete('/history');
+    return response.data;
   },
 
   /**
-   * Update user profile information
-   * MOCK: replace with real API in integration step -> return (await api.put('/user/profile', data)).data;
+   * Get user profile metrics & stats
+   * GET /api/users/me/stats
+   */
+  async getMyStats() {
+    const response = await api.get('/users/me/stats');
+    return response.data.stats || {
+      watchlistCount: 0,
+      favoritesCount: 0,
+      reviewCount: 0,
+      moodCheckCount: 0,
+      memberSince: new Date().toISOString()
+    };
+  },
+
+  /**
+   * Update user display name
+   * PATCH /api/auth/me
    */
   async updateProfile(data) {
-    await delay(400);
-    const storedUser = getStored('moodie_user', {});
-    const updated = { ...storedUser, ...data };
-    setStored('moodie_user', updated);
-    return updated;
+    const response = await api.patch('/auth/me', data);
+    return response.data.user;
   },
 
   /**
-   * Change user account password
-   * MOCK: replace with real API in integration step -> return (await api.put('/user/password', data)).data;
+   * Change user password
+   * PATCH /api/auth/password
    */
   async changePassword({ currentPassword, newPassword }) {
-    await delay(450);
-    if (!currentPassword || !newPassword) {
-      throw new Error('Current and new password are required');
-    }
-    if (newPassword.length < 8) {
-      throw new Error('New password must be at least 8 characters');
-    }
-    return { success: true };
+    const response = await api.patch('/auth/password', {
+      currentPassword,
+      newPassword
+    });
+    return response.data;
   },
 
   /**
-   * Delete user account
-   * MOCK: replace with real API in integration step -> return (await api.delete('/user/account')).data;
+   * Permanently delete user account with password confirmation
+   * DELETE /api/users/me
    */
-  async deleteAccount() {
-    await delay(500);
-    localStorage.removeItem('moodie_user');
-    localStorage.removeItem('moodie_token');
-    localStorage.removeItem('moodie_watchlist');
-    localStorage.removeItem('moodie_favorites');
-    localStorage.removeItem('moodie_history');
-    return { success: true };
+  async deleteAccount(password) {
+    const response = await api.delete('/users/me', {
+      data: { password }
+    });
+    return response.data;
   },
 
   /**
    * Get reviews created by current user
-   * MOCK: replace with real API in integration step -> return (await api.get('/user/reviews')).data;
+   * GET /api/reviews/me/list
    */
   async getUserReviews() {
-    await delay(300);
-    return MOCK_REVIEWS.slice(0, 4);
+    const response = await api.get('/reviews/me/list');
+    const rawList = response.data.reviews || [];
+    return rawList.map((r) => ({
+      id: r._id,
+      _id: r._id,
+      rating: r.rating,
+      comment: r.comment,
+      sentiment: r.sentiment,
+      status: r.status,
+      movieTitle: r.movieId?.title || 'Unknown Film',
+      movie: r.movieId ? mapMovie(r.movieId) : null,
+      createdAt: r.createdAt
+    }));
   },
 
   /**
    * Get user preferences (favorite genres, preferred language)
-   * MOCK: replace with real API in integration step -> return (await api.get('/user/preferences')).data;
+   * GET /api/auth/me
    */
   async getPreferences() {
-    await delay(250);
-    return getStored('moodie_preferences', {
+    const response = await api.get('/auth/me');
+    const user = response.data.user;
+    return user?.preferences || {
       favoriteGenres: ['Sci-Fi', 'Comedy', 'Drama'],
-      preferredLanguage: 'English'
-    });
+      language: 'en'
+    };
   },
 
   /**
    * Update user preferences
-   * MOCK: replace with real API in integration step -> return (await api.put('/user/preferences', data)).data;
+   * PATCH /api/users/me/preferences
    */
-  async updatePreferences(data) {
-    await delay(350);
-    setStored('moodie_preferences', data);
-    return data;
+  async updatePreferences({ favoriteGenres, language }) {
+    const payload = {};
+    if (favoriteGenres !== undefined) {
+      payload.favoriteGenres = favoriteGenres;
+    }
+    if (language !== undefined) {
+      payload.language = language;
+    }
+    const response = await api.patch('/users/me/preferences', payload);
+    return response.data.preferences;
   }
 };
 
